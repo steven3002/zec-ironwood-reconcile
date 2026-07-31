@@ -34,6 +34,7 @@
 pub mod canonical;
 pub mod checks;
 pub mod cli;
+pub mod commands;
 pub mod domain;
 pub mod error;
 pub mod evidence;

@@ -7,9 +7,11 @@ use std::process::ExitCode as ProcessExitCode;
 
 use clap::Parser;
 
-use zec_ironwood_reconcile::cli::args::{Cli, Command};
+use zec_ironwood_reconcile::cli::args::{Cli, Command, InspectArgs, VerifyArgs};
 use zec_ironwood_reconcile::cli::exit::ExitCode;
+use zec_ironwood_reconcile::commands::{inspect, verify};
 use zec_ironwood_reconcile::error::ReconcileError;
+use zec_ironwood_reconcile::evidence::archive::ExtractionLimits;
 
 fn main() -> ProcessExitCode {
     let cli = Cli::parse();
@@ -27,8 +29,48 @@ fn run(cli: &Cli) -> Result<ExitCode, ReconcileError> {
     match &cli.command {
         Command::Capture(_) => Err(unimplemented_command("capture")),
         Command::Reconcile(_) => Err(unimplemented_command("reconcile")),
-        Command::Verify(_) => Err(unimplemented_command("verify")),
-        Command::Inspect(_) => Err(unimplemented_command("inspect")),
+        Command::Verify(args) => run_verify(args),
+        Command::Inspect(args) => run_inspect(args),
+    }
+}
+
+fn run_inspect(args: &InspectArgs) -> Result<ExitCode, ReconcileError> {
+    let summary = inspect::inspect(&args.bundle)?;
+    print!("{}", inspect::render(&summary));
+    Ok(ExitCode::Success)
+}
+
+/// Verifies an archive's evidence against its manifest.
+///
+/// Reconciliation is not yet wired in, so no report hash is produced. When the caller
+/// supplied an expected hash, that expectation cannot be met and the run must not report
+/// success: an unmet expectation is a failure, not an absence of one.
+fn run_verify(args: &VerifyArgs) -> Result<ExitCode, ReconcileError> {
+    let workspace = tempfile::tempdir().map_err(|source| ReconcileError::Filesystem {
+        path: "temporary extraction directory".to_owned(),
+        source,
+    })?;
+
+    let (_, outcome) = verify::verify_archive(
+        &args.archive,
+        workspace.path(),
+        args.expected_report_hash.as_deref(),
+        &ExtractionLimits::default(),
+    )?;
+
+    print!("{}", verify::render(&outcome));
+
+    match outcome.hash_matches() {
+        Some(true) => Ok(ExitCode::Success),
+        Some(false) => Ok(ExitCode::ChecksFailed),
+        None if args.expected_report_hash.is_some() => {
+            eprintln!(
+                "error: a report hash was expected but reconciliation is not yet available in \
+                 this build, so no comparison could be made"
+            );
+            Ok(ExitCode::ChecksFailed)
+        }
+        None => Ok(ExitCode::Success),
     }
 }
 

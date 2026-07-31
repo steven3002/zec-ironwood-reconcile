@@ -16,6 +16,11 @@ serde_json = "1"
 thiserror = "2"
 sha2 = "0.10"
 hex = "0.4"
+tar = "0.4"
+zstd = "0.13"
+
+# Extraction of untrusted archives into a directory this process controls.
+tempfile = "3"
 
 # RFC 8785 canonical JSON. Report and manifest hashes are only reproducible if
 # serialization is byte-stable across machines and library versions.

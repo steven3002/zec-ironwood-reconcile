@@ -93,7 +93,9 @@ The pinned toolchain is declared in `rust-toolchain.toml`.
 | Transaction parsing | Implemented; unverified against real Ironwood bundles |
 | Reconciliation and checks | Implemented and tested |
 | Reports and determinism | Implemented and tested |
-| Archive, offline verify, inspect | Not started |
+| Archive packaging and hardened extraction | Implemented and tested |
+| `inspect` | Implemented and tested |
+| `verify` | Verifies evidence; cannot yet reproduce a report hash |
 | RPC client and capture | Not started |
 | Published mainnet evidence | Not started |
 
