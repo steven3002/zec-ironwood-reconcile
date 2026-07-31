@@ -20,9 +20,32 @@ captured fixture breaks that circularity.
 
 ## Captured fixtures
 
-*None yet.*
+### Node RPC responses
 
-Capture is pending a synced node. When adding one, record:
+Recorded from a live **Zebra 6.2.3** node on **testnet** on **2026-07-31**, by issuing the
+listed call against `http://127.0.0.1:18232` and storing the JSON-RPC `result` member
+(`error-block-out-of-range.json` stores the whole envelope, since the point of it is the
+error member). No response contains a credential.
+
+| File | RPC call | SHA-256 | What it pins |
+| --- | --- | --- | --- |
+| `getinfo-zebra-testnet.json` | `getinfo` | `d3d63822ec54a4613091c7c3089d2a9f3a6a36b6ef7b5118467b6453116d4645` | Node identity fields and the `testnet` flag |
+| `getblockchaininfo-zebra-testnet.json` | `getblockchaininfo` | `197af7a1a74372b75e956d9060c8c58bb51d62069e44ddafa96a4dc08f35e372` | `chain: "test"`, the branch-id-keyed upgrade table including NU6.3 at 4,134,000, and the six-pool set |
+| `getblock-verbose-280769.json` | `getblock "280769" 1` | `3f6450f468e6aa9ba229e47e74ad67292fa234cd5d5772266cb6c80b5af48f03` | Per-pool `chainValueZat` / `valueDeltaZat` / `monitored`, and the presence of `confirmations` |
+| `getblock-verbose-280768-unmonitored.json` | `getblock "280768" 1` | `5f0eda127d2d43c6fc2a2f079c5ef705ee7df6ee69a31f73de1df317eebad134` | The height *before* the sapling pool first held value: `monitored: false` with `chainValueZat: 0` |
+| `getblock-raw-280769.json` | `getblock "280769" 0` | `ae45602221c9189f450b8016aa6ab6956104b468bec9d09e18bc844afd0e54e6` | Verbosity 0 returns a hex string |
+| `error-block-out-of-range.json` | `getblock "999999999" 1` | `984e7dbad2a424fc1322d3ceb9733a7e1310736aa35d8275b58fd8a1977545f8` | Application errors arrive with **HTTP 200**, an `error` member, and no `result` |
+
+The pair at heights 280,768 and 280,769 is the evidence behind the `monitored` handling:
+280,769 is the testnet height at which the sapling pool first received value, found by
+bisection, and the flag flips exactly there.
+
+**What these do not show.** They are pre-activation testnet blocks. They pin *response
+shape*, not Ironwood behaviour, and cannot close Gate 1.
+
+### Block bytes
+
+*None yet.* When adding one, record:
 
 ```
 File:            <relative path>

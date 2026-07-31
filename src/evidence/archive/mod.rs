@@ -9,4 +9,4 @@ pub mod pack;
 
 pub use extract::{ExtractionSummary, extract};
 pub use limits::ExtractionLimits;
-pub use pack::pack;
+pub use pack::{pack, pack_with_digest};

@@ -112,7 +112,8 @@ mod tests {
     use crate::domain::height::{BlockHeight, HeightInterval};
     use crate::domain::zatoshi::Zatoshi;
     use crate::evidence::manifest::{
-        Activation, AnchorState, EndState, Rfc3339Timestamp, SCHEMA_VERSION, Source, Tool,
+        Activation, AnchorState, EndState, EndStateTracking, Rfc3339Timestamp, SCHEMA_VERSION,
+        Source, Tool,
     };
 
     fn manifest(network: Network) -> Manifest {
@@ -147,6 +148,7 @@ mod tests {
                 block_hash: "1".repeat(64),
                 reported_orchard_balance_zatoshis: Zatoshi::ZERO,
                 reported_ironwood_balance_zatoshis: Zatoshi::ZERO,
+                tracking: EndStateTracking::default(),
             },
             files: Vec::new(),
         }

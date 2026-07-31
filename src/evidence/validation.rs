@@ -249,8 +249,8 @@ mod tests {
     use crate::domain::network::Network;
     use crate::domain::zatoshi::Zatoshi;
     use crate::evidence::manifest::{
-        Activation, AnchorState, Encoding, EndState, FileEntry, Rfc3339Timestamp, SCHEMA_VERSION,
-        Source, Tool,
+        Activation, AnchorState, Encoding, EndState, EndStateTracking, FileEntry, Rfc3339Timestamp,
+        SCHEMA_VERSION, Source, Tool,
     };
     use std::io::Write;
 
@@ -306,6 +306,7 @@ mod tests {
                 block_hash: "1".repeat(64),
                 reported_orchard_balance_zatoshis: Zatoshi::from_raw(366_000_000_000_000),
                 reported_ironwood_balance_zatoshis: Zatoshi::ZERO,
+                tracking: EndStateTracking::default(),
             },
             files: Vec::new(),
         };

@@ -10,6 +10,14 @@
 //! progress, all the while appearing healthy. Treating an absent balance as zero would
 //! produce a confident and completely wrong reconciliation, so absence is modelled
 //! explicitly and [`ReportedPoolState::require_balance`] refuses to guess.
+//!
+//! # A reported zero is not always a measurement
+//!
+//! Absence is not the only way a node declines to state a balance. Zebra also reports
+//! `chainValueZat: 0` together with `monitored: false` for a pool it is not yet tracking at
+//! that height, which is a placeholder rather than an observation. The distinction is
+//! preserved in [`ReportedPoolState::monitored`], because a reconstruction agreeing with an
+//! untracked zero has not been corroborated by anything.
 
 use std::collections::BTreeMap;
 
@@ -28,6 +36,11 @@ pub struct ReportedPoolState {
     pub balances: BTreeMap<Pool, Zatoshi>,
     /// Change contributed by this block, per pool, where the node reported one.
     pub deltas: BTreeMap<Pool, Zatoshi>,
+    /// Whether the node stated it is tracking each pool at this height.
+    ///
+    /// A pool absent from this map was reported by a node that does not publish the flag.
+    #[serde(default)]
+    pub monitored: BTreeMap<Pool, bool>,
 }
 
 impl ReportedPoolState {
@@ -36,6 +49,7 @@ impl ReportedPoolState {
             height,
             balances: BTreeMap::new(),
             deltas: BTreeMap::new(),
+            monitored: BTreeMap::new(),
         }
     }
 
@@ -49,12 +63,33 @@ impl ReportedPoolState {
         self
     }
 
+    pub fn with_monitored(mut self, pool: Pool, monitored: bool) -> Self {
+        self.monitored.insert(pool, monitored);
+        self
+    }
+
     pub fn balance(&self, pool: Pool) -> Option<Zatoshi> {
         self.balances.get(&pool).copied()
     }
 
     pub fn delta(&self, pool: Pool) -> Option<Zatoshi> {
         self.deltas.get(&pool).copied()
+    }
+
+    /// Whether the node stated it is tracking a pool, if it stated anything at all.
+    pub fn monitored(&self, pool: Pool) -> Option<bool> {
+        self.monitored.get(&pool).copied()
+    }
+
+    /// Reconstructed pools the node explicitly reported it is not tracking.
+    ///
+    /// Their balances will read as zero. That zero is a placeholder, so a comparison
+    /// against it corroborates nothing and must not be presented as agreement.
+    pub fn untracked_reconstructed_pools(&self) -> Vec<Pool> {
+        Pool::RECONSTRUCTED
+            .into_iter()
+            .filter(|pool| self.monitored(*pool) == Some(false))
+            .collect()
     }
 
     /// Returns a balance, or fails if the node did not report one.

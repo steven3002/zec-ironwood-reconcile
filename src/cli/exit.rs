@@ -72,9 +72,9 @@ impl From<&ReconcileError> for ExitCode {
                 Self::CaptureIncomplete
             }
 
-            ReconcileError::NetworkMismatch { .. } | ReconcileError::BranchIdMismatch { .. } => {
-                Self::ContextMismatch
-            }
+            ReconcileError::NetworkMismatch { .. }
+            | ReconcileError::BranchIdMismatch { .. }
+            | ReconcileError::ActivationMismatch { .. } => Self::ContextMismatch,
 
             ReconcileError::ArithmeticOverflow
             | ReconcileError::ValueOutOfBounds { .. }

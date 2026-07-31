@@ -1,8 +1,20 @@
-//! Reading captured node responses about value pools.
+//! The boundary between a node's `getblock` response and the pool-state evidence file.
 //!
-//! Evidence preserves the node's response as it was served, rather than a form this crate
-//! finds convenient. This module is the boundary that turns that response into the domain
-//! type used for comparison.
+//! # Why the response is projected rather than stored verbatim
+//!
+//! A `getblock` response mixes two kinds of field. Some describe the block: its hash, its
+//! height, the value each pool held after it. Others describe the moment it was asked for,
+//! `confirmations` being the clearest — it is the distance to the chain tip, so the same
+//! block yields a different response every few minutes.
+//!
+//! Storing the response verbatim would make an evidence file a record of when a capture ran
+//! rather than of what a block contains, and two operators capturing the same interval would
+//! produce different bytes for the same block. Independent reproduction is the property this
+//! project rests on, so [`project`] keeps the fields that belong to the block and discards
+//! the rest.
+//!
+//! This applies to the reported-pools file only. A block's consensus bytes are stored
+//! exactly as the node served them, because there the encoding is the evidence.
 //!
 //! # Encoding differs from the canonical report
 //!
@@ -16,6 +28,10 @@
 //! A pool entry may carry no `chainValueZat`, and a node undergoing a database upgrade may
 //! omit them entirely while otherwise appearing healthy. An absent value stays absent; it
 //! never becomes zero.
+//!
+//! The node's `monitored` flag is preserved for the same reason. Zebra reports a balance of
+//! zero for a pool it is not yet tracking, and only sets `monitored` once the pool first
+//! holds value, so the flag is the difference between a measured zero and a placeholder.
 
 use serde::Deserialize;
 
@@ -35,6 +51,10 @@ struct ValuePoolEntry {
     #[serde(default)]
     #[serde(rename = "valueDeltaZat")]
     value_delta_zat: Option<i64>,
+    /// Whether the node is tracking this pool at this height. Absent on nodes that do not
+    /// publish the flag, which is distinct from a reported `false`.
+    #[serde(default)]
+    monitored: Option<bool>,
 }
 
 /// The subset of a `getblock` response this crate reads.
@@ -82,6 +102,9 @@ pub fn parse(bytes: &[u8]) -> Result<CapturedBlockState, ReconcileError> {
         if let Some(delta) = entry.value_delta_zat {
             pools = pools.with_delta(pool, Zatoshi::new_checked(delta)?);
         }
+        if let Some(monitored) = entry.monitored {
+            pools = pools.with_monitored(pool, monitored);
+        }
     }
 
     Ok(CapturedBlockState {
@@ -89,6 +112,46 @@ pub fn parse(bytes: &[u8]) -> Result<CapturedBlockState, ReconcileError> {
         block_hash: response.hash,
         pools,
     })
+}
+
+/// Reduces a node's `getblock` response to the fields that describe the block.
+///
+/// The result is what a bundle stores. Keeping the projection explicit — an allow-list
+/// rather than a list of known-variable fields to remove — means a field introduced by a
+/// future node release cannot silently make evidence unreproducible.
+///
+/// An absent balance stays absent. Omission is meaningful, and the guard that refuses an
+/// unusable capture depends on it surviving.
+pub fn project(response: &serde_json::Value) -> serde_json::Value {
+    let pools: Vec<serde_json::Value> = response
+        .get("valuePools")
+        .and_then(serde_json::Value::as_array)
+        .map(|entries| entries.iter().map(project_pool).collect())
+        .unwrap_or_default();
+
+    let mut projected = serde_json::Map::new();
+    for field in ["hash", "height"] {
+        if let Some(value) = response.get(field) {
+            projected.insert(field.to_owned(), value.clone());
+        }
+    }
+    projected.insert("valuePools".to_owned(), serde_json::Value::Array(pools));
+
+    serde_json::Value::Object(projected)
+}
+
+/// Keeps one pool entry's identity, integral amounts, and tracking flag.
+///
+/// The node also reports each amount as a floating-point `chainValue`. Those are dropped:
+/// they are a lossy restatement of the zatoshi figures, and nothing here reads them.
+fn project_pool(entry: &serde_json::Value) -> serde_json::Value {
+    let mut projected = serde_json::Map::new();
+    for field in ["id", "chainValueZat", "valueDeltaZat", "monitored"] {
+        if let Some(value) = entry.get(field) {
+            projected.insert(field.to_owned(), value.clone());
+        }
+    }
+    serde_json::Value::Object(projected)
 }
 
 /// Parses a captured response and requires it to carry every reconstructed pool balance.
@@ -272,6 +335,144 @@ mod tests {
             parse(absurd.as_bytes()),
             Err(ReconcileError::ValueOutOfBounds { .. })
         ));
+    }
+
+    /// Reads a response recorded from a live node.
+    fn recorded(name: &str) -> Vec<u8> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/rpc")
+            .join(name);
+        std::fs::read(&path).unwrap_or_else(|e| panic!("missing fixture {}: {e}", path.display()))
+    }
+
+    #[test]
+    fn a_response_recorded_from_a_live_node_parses() {
+        let state = parse(&recorded("getblock-verbose-280769.json")).unwrap();
+
+        assert_eq!(state.height, BlockHeight::new(280_769));
+        assert_eq!(state.pools.balance(Pool::Orchard), Some(Zatoshi::ZERO));
+        assert_eq!(state.pools.balance(Pool::Ironwood), Some(Zatoshi::ZERO));
+        assert_eq!(
+            state.pools.balance(Pool::Sapling),
+            Some(Zatoshi::from_raw(1_000_000_000))
+        );
+    }
+
+    #[test]
+    fn an_untracked_pool_is_distinguished_from_a_measured_zero() {
+        // Recorded either side of the height at which the sapling pool first held value.
+        // Both responses state a sapling balance; only the later one is a measurement.
+        let before = parse(&recorded("getblock-verbose-280768-unmonitored.json")).unwrap();
+        let after = parse(&recorded("getblock-verbose-280769.json")).unwrap();
+
+        assert_eq!(before.pools.balance(Pool::Sapling), Some(Zatoshi::ZERO));
+        assert_eq!(before.pools.monitored(Pool::Sapling), Some(false));
+        assert_eq!(after.pools.monitored(Pool::Sapling), Some(true));
+    }
+
+    #[test]
+    fn untracked_reconstructed_pools_are_listed() {
+        // At this height neither Orchard nor Ironwood has been activated, so both report a
+        // placeholder zero.
+        let state = parse(&recorded("getblock-verbose-280769.json")).unwrap();
+        assert_eq!(
+            state.pools.untracked_reconstructed_pools(),
+            vec![Pool::Orchard, Pool::Ironwood]
+        );
+    }
+
+    #[test]
+    fn projection_drops_fields_that_depend_on_when_the_block_was_asked_for() {
+        // `confirmations` is the distance to the chain tip, so the same block yields a
+        // different response minutes later. Keeping it would make evidence unreproducible.
+        let response: serde_json::Value =
+            serde_json::from_slice(&recorded("getblock-verbose-280769.json")).unwrap();
+        assert!(
+            response.get("confirmations").is_some(),
+            "the recorded response should contain the field this test is about"
+        );
+
+        let projected = project(&response);
+        assert!(projected.get("confirmations").is_none());
+        assert!(projected.get("nextblockhash").is_none());
+        assert_eq!(projected.get("height"), response.get("height"));
+        assert_eq!(projected.get("hash"), response.get("hash"));
+    }
+
+    #[test]
+    fn projection_survives_a_round_trip_through_the_parser() {
+        let response: serde_json::Value =
+            serde_json::from_slice(&recorded("getblock-verbose-280769.json")).unwrap();
+
+        let direct = parse(&recorded("getblock-verbose-280769.json")).unwrap();
+        let projected = parse(&serde_json::to_vec(&project(&response)).unwrap()).unwrap();
+
+        assert_eq!(direct, projected);
+    }
+
+    #[test]
+    fn projection_keeps_the_integral_amounts_and_drops_the_floating_point_ones() {
+        let response = serde_json::json!({
+            "hash": "aa",
+            "height": 5,
+            "confirmations": 900,
+            "valuePools": [{
+                "id": "orchard",
+                "chainValue": 3.66,
+                "chainValueZat": 366_000_000_i64,
+                "valueDelta": -0.01,
+                "valueDeltaZat": -1_000_000_i64,
+                "monitored": true
+            }]
+        });
+
+        let projected = project(&response);
+        let pool = &projected["valuePools"][0];
+        assert_eq!(pool["chainValueZat"], serde_json::json!(366_000_000_i64));
+        assert_eq!(pool["valueDeltaZat"], serde_json::json!(-1_000_000_i64));
+        assert_eq!(pool["monitored"], serde_json::json!(true));
+        assert!(pool.get("chainValue").is_none());
+        assert!(pool.get("valueDelta").is_none());
+    }
+
+    #[test]
+    fn projection_preserves_an_absent_balance_rather_than_inventing_one() {
+        let response = serde_json::json!({
+            "hash": "aa",
+            "height": 5,
+            "valuePools": [{"id": "orchard", "monitored": false}]
+        });
+
+        let projected = project(&response);
+        assert!(projected["valuePools"][0].get("chainValueZat").is_none());
+
+        // The guard must still fire on the projected form.
+        let bytes = serde_json::to_vec(&projected).unwrap();
+        assert!(matches!(
+            parse_requiring_balances(&bytes),
+            Err(ReconcileError::CaptureIncomplete { .. })
+        ));
+    }
+
+    #[test]
+    fn projection_of_an_unrecognisable_response_yields_no_pools_rather_than_failing() {
+        // Refusal belongs to the parser, which reports why. Projection only selects fields.
+        let projected = project(&serde_json::json!({"unexpected": true}));
+        assert_eq!(projected["valuePools"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn a_node_that_omits_the_flag_reports_no_opinion() {
+        // The flag is absent from older responses. That is not the same as a reported
+        // `false`, and must not be read as one.
+        let without = r#"{
+            "hash": "00",
+            "height": 1,
+            "valuePools": [{"id": "orchard", "chainValueZat": 5}]
+        }"#;
+        let state = parse(without.as_bytes()).unwrap();
+        assert_eq!(state.pools.monitored(Pool::Orchard), None);
+        assert!(state.pools.untracked_reconstructed_pools().is_empty());
     }
 
     #[test]

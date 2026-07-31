@@ -72,8 +72,10 @@ pub struct CaptureArgs {
     #[arg(long, default_value_t = 30)]
     pub timeout_seconds: u64,
 
-    #[arg(long, default_value_t = 10.0)]
-    pub requests_per_second: f64,
+    /// Whole requests per second. Integral because this crate performs no floating-point
+    /// arithmetic, so the pacing interval is derived in milliseconds.
+    #[arg(long, default_value_t = 10)]
+    pub requests_per_second: u32,
 
     /// Minimum number of blocks the chain tip must exceed `--to-height`.
     #[arg(long, default_value_t = DEFAULT_TIP_DISTANCE)]
@@ -85,6 +87,12 @@ pub struct CaptureArgs {
 
     #[arg(long)]
     pub overwrite: bool,
+
+    /// Also pack the finished bundle into this `.tar.zst` archive and write its digest
+    /// alongside as `<archive>.sha256`. The archive and that digest are what a third party
+    /// needs in order to reproduce the result offline.
+    #[arg(long)]
+    pub archive: Option<PathBuf>,
 
     /// Assert the expected activation height for the selected network.
     #[arg(long)]

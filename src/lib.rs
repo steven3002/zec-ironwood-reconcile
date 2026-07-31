@@ -32,6 +32,7 @@
 )]
 
 pub mod canonical;
+pub mod capture;
 pub mod checks;
 pub mod cli;
 pub mod commands;
@@ -41,3 +42,4 @@ pub mod evidence;
 pub mod parse;
 pub mod reconcile;
 pub mod report;
+pub mod rpc;

@@ -50,6 +50,50 @@ independent one.
 Every file records its encoding explicitly in the manifest, so a reader never infers an
 encoding from a file extension.
 
+### The reported-pools files
+
+`anchor/value-pools.json` and `blocks/<height>.pools.json` hold the node's `getblock`
+response reduced to the fields that describe the block:
+
+```json
+{
+  "hash": "0000...",
+  "height": 3428143,
+  "valuePools": [
+    { "id": "orchard",  "chainValueZat": 366000000000000, "valueDeltaZat": -1000, "monitored": true },
+    { "id": "ironwood", "chainValueZat": 1000,            "valueDeltaZat": 1000,  "monitored": true }
+  ]
+}
+```
+
+The response is projected rather than stored verbatim because it also carries fields that
+describe *when it was asked for*. `confirmations` is the distance to the chain tip, so the
+same block yields a different response every few minutes. Storing it would mean two
+operators capturing the same interval produced different bytes for the same block, and
+independent reproduction is the property this format exists to support.
+
+The projection is an allow-list — `hash`, `height`, and per pool `id`, `chainValueZat`,
+`valueDeltaZat`, `monitored` — so a field added by a future node release cannot silently
+make evidence unreproducible. The floating-point `chainValue` and `valueDelta` fields are
+dropped as a lossy restatement of the zatoshi figures.
+
+An absent balance stays absent. Omission is meaningful: a node undergoing a database
+upgrade serves empty pool values at arbitrary heights while otherwise appearing healthy,
+and treating that as zero would yield a confident and meaningless reconciliation.
+
+**`monitored`** states whether the node is tracking a pool at that height. A node reports
+`chainValueZat: 0` for a pool it is not tracking, so without this flag a placeholder cannot
+be told apart from a measured zero — and agreement with a placeholder is not corroboration.
+
+Only the pools files are projected. A block's consensus bytes are stored exactly as served.
+
+### Provenance is not evidence
+
+The `rpc/` and `metadata/` files record the capturing node and session: tip height, sync
+progress, database size, capture time. These legitimately differ between two captures of the
+same interval and are not inputs to any calculation. Reproducibility applies to the evidence
+— `anchor/` and `blocks/` — and to the report derived from it.
+
 ---
 
 ## 2. Manifest schema
@@ -88,7 +132,11 @@ encoding from a file extension.
   "end": {
     "block_hash": "0000...",
     "reported_orchard_balance_zatoshis": "348400000000000",
-    "reported_ironwood_balance_zatoshis": "17600000000000"
+    "reported_ironwood_balance_zatoshis": "17600000000000",
+    "tracking": {
+      "orchard_tracked_by_node": true,
+      "ironwood_tracked_by_node": true
+    }
   },
   "files": [
     {
@@ -113,6 +161,7 @@ encoding from a file extension.
 | `encoding` | One of `raw-block-hex`, `json`, `text` |
 | `files` | Sorted by `path`; no duplicates |
 | `rpc_url_redacted` | The RPC endpoint is never recorded, only that it was withheld |
+| `end.tracking.*` | `true`, `false`, or `null` when the node published no opinion |
 
 ### Why monetary values are strings
 

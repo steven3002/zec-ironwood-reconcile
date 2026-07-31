@@ -39,6 +39,12 @@ pub enum ReconcileError {
     #[error("consensus branch id mismatch: expected {expected:#010x}, received {actual:#010x}")]
     BranchIdMismatch { expected: u32, actual: u32 },
 
+    /// Raised when a node's declared upgrade schedule disagrees with the protocol constants
+    /// compiled into this build, which would make every activation-dependent conclusion in
+    /// a report unsound.
+    #[error("activation context mismatch: {reason}")]
+    ActivationMismatch { reason: String },
+
     #[error("evidence hash mismatch for {path}")]
     HashMismatch { path: String },
 
@@ -100,6 +106,7 @@ impl ReconcileError {
             Self::UnsupportedTransaction { .. } => "unsupported_transaction_version",
             Self::TransactionParse { .. } => "transaction_parse_failure",
             Self::BranchIdMismatch { .. } => "branch_id_mismatch",
+            Self::ActivationMismatch { .. } => "activation_mismatch",
             Self::HashMismatch { .. } => "evidence_hash_mismatch",
             Self::MissingFile { .. } => "evidence_file_missing",
             Self::ManifestInvalid { .. } => "manifest_invalid",
@@ -149,6 +156,9 @@ mod tests {
             ReconcileError::BranchIdMismatch {
                 expected: 1,
                 actual: 2,
+            },
+            ReconcileError::ActivationMismatch {
+                reason: "height disagreement".to_owned(),
             },
             ReconcileError::HashMismatch {
                 path: "blocks/1.hex".to_owned(),

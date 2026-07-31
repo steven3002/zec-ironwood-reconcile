@@ -23,6 +23,39 @@ const ZSTD_LEVEL: i32 = 9;
 /// Fixed mode applied to every archived file.
 const FILE_MODE: u32 = 0o644;
 
+/// Packs a bundle and writes the detached digest a third party checks it against.
+///
+/// The digest file uses the two-space layout `sha256sum -c` expects, so verifying the
+/// download requires no tool from this project.
+pub fn pack_with_digest(bundle_root: &Path, archive_path: &Path) -> Result<String, ReconcileError> {
+    pack(bundle_root, archive_path)?;
+
+    let digest = crate::evidence::hashing::sha256_file(archive_path)?;
+    let name = archive_path
+        .file_name()
+        .and_then(std::ffi::OsStr::to_str)
+        .ok_or_else(|| ReconcileError::InvalidInput {
+            reason: format!("{} has no usable file name", archive_path.display()),
+        })?;
+
+    let digest_path = archive_path.with_extension(format!(
+        "{}.sha256",
+        archive_path
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or_default()
+    ));
+
+    std::fs::write(&digest_path, format!("{digest}  {name}\n")).map_err(|source| {
+        ReconcileError::Filesystem {
+            path: digest_path.display().to_string(),
+            source,
+        }
+    })?;
+
+    Ok(digest)
+}
+
 /// Packs a bundle directory into a `.tar.zst` archive.
 pub fn pack(bundle_root: &Path, archive_path: &Path) -> Result<(), ReconcileError> {
     let paths = collect_sorted_paths(bundle_root)?;
@@ -254,6 +287,23 @@ mod tests {
         sorted.sort();
         assert_eq!(paths, sorted);
         assert!(paths.contains(&"blocks/3428143.hex".to_owned()));
+    }
+
+    #[test]
+    fn packing_with_a_digest_writes_a_checkable_sidecar() {
+        let dir = tempfile::tempdir().unwrap();
+        let bundle = dir.path().join("bundle");
+        std::fs::create_dir_all(&bundle).unwrap();
+        sample_bundle(&bundle);
+
+        let archive = dir.path().join("evidence.tar.zst");
+        let digest = pack_with_digest(&bundle, &archive).unwrap();
+
+        let sidecar = dir.path().join("evidence.tar.zst.sha256");
+        let contents = std::fs::read_to_string(&sidecar).unwrap();
+
+        assert_eq!(contents, format!("{digest}  evidence.tar.zst\n"));
+        assert_eq!(digest, hashing::sha256_file(&archive).unwrap());
     }
 
     #[test]

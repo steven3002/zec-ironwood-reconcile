@@ -34,6 +34,15 @@ time = { version = "0.3", features = ["formatting", "parsing"] }
 zcash_primitives = "0.30"
 zcash_protocol = "0.10"
 orchard = "0.15"
+# Blocking HTTP for the JSON-RPC transport. Default features are disabled deliberately:
+# they pull a TLS stack this tool has no use for. Zebra's RPC endpoint serves plain HTTP
+# only, and the supported deployment is a node reachable without an intermediary, so a TLS
+# implementation would be dead weight in the dependency tree and in the audit surface.
+ureq = { version = "3.3.0", default-features = false }
+
+# HTTP Basic credentials. Already present transitively; declared directly so the encoding
+# used for authentication is not an implementation detail of another crate.
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

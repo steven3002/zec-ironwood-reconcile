@@ -7,9 +7,9 @@ use std::process::ExitCode as ProcessExitCode;
 
 use clap::Parser;
 
-use zec_ironwood_reconcile::cli::args::{Cli, Command, InspectArgs, VerifyArgs};
+use zec_ironwood_reconcile::cli::args::{CaptureArgs, Cli, Command, InspectArgs, VerifyArgs};
 use zec_ironwood_reconcile::cli::exit::ExitCode;
-use zec_ironwood_reconcile::commands::{inspect, verify};
+use zec_ironwood_reconcile::commands::{capture, inspect, verify};
 use zec_ironwood_reconcile::error::ReconcileError;
 use zec_ironwood_reconcile::evidence::archive::ExtractionLimits;
 
@@ -27,11 +27,22 @@ fn main() -> ProcessExitCode {
 
 fn run(cli: &Cli) -> Result<ExitCode, ReconcileError> {
     match &cli.command {
-        Command::Capture(_) => Err(unimplemented_command("capture")),
+        Command::Capture(args) => run_capture(args, cli.quiet),
         Command::Reconcile(_) => Err(unimplemented_command("reconcile")),
         Command::Verify(args) => run_verify(args),
         Command::Inspect(args) => run_inspect(args),
     }
+}
+
+/// Captures an interval and reports what was written.
+///
+/// Advisories are printed but do not change the exit code: they describe the evidence, not
+/// a failure to collect it. A condition that makes a capture unusable is an error, and an
+/// error never reaches this point.
+fn run_capture(args: &CaptureArgs, quiet: bool) -> Result<ExitCode, ReconcileError> {
+    let summary = capture::capture(args, quiet)?;
+    print!("{}", capture::render(&summary));
+    Ok(ExitCode::Success)
 }
 
 fn run_inspect(args: &InspectArgs) -> Result<ExitCode, ReconcileError> {

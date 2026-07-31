@@ -57,6 +57,35 @@ zec-ironwood-reconcile inspect     # display bundle metadata
 Offline verification requires no node, no internet access, no database, no hosted service,
 no wallet, and no infrastructure belonging to this project.
 
+### Capturing
+
+```sh
+zec-ironwood-reconcile capture \
+  --rpc-url http://127.0.0.1:8232 \
+  --rpc-cookie-file ~/.cache/zebra/.cookie \
+  --network mainnet \
+  --from-height 3428143 --to-height 3429143 \
+  --output ./evidence/mainnet-3428142-3429143 \
+  --archive ./evidence/mainnet-3428142-3429143.tar.zst
+```
+
+Cookie authentication is the default path; Zebra writes the cookie into its cache directory
+at startup, and `--rpc-cookie-file` is only needed when the node uses a custom location.
+`--archive` also writes `<archive>.sha256` in the format `sha256sum -c` accepts.
+
+Capture only reads. It calls `getinfo`, `getblockchaininfo`, and `getblock`, and nothing
+else — no wallet method, no key request, no broadcast, no node configuration change.
+
+Before retrieving any block it confirms the node serves the requested network, that the
+node's own NU6.3 activation height matches the one compiled into this build, that the tip is
+far enough beyond the requested interval to survive a reorganisation, and that the node
+reports usable pool values at the anchor. After the interval completes it re-reads the end
+block and refuses the capture if the hash changed. `--resume` continues an interrupted run;
+files are written by atomic rename, so a file that exists is complete.
+
+The endpoint is transported over plain HTTP only, because Zebra's RPC port does not offer
+TLS. Credentials never reach a bundle, a log line, or an error message.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -96,7 +125,8 @@ The pinned toolchain is declared in `rust-toolchain.toml`.
 | Archive packaging and hardened extraction | Implemented and tested |
 | `inspect` | Implemented and tested |
 | `verify` | Verifies evidence; cannot yet reproduce a report hash |
-| RPC client and capture | Not started |
+| RPC client and `capture` | Implemented; exercised against a live Zebra 6.2.3 node |
+| `reconcile` | Not started |
 | Published mainnet evidence | Not started |
 
 No component is described as delivered until its tests pass against real chain data. The

@@ -126,6 +126,18 @@ pub struct AnchorState {
     pub ironwood_balance_zatoshis: Zatoshi,
 }
 
+/// Whether the capturing node said it was tracking each reconstructed pool.
+///
+/// A node reports a balance of zero for a pool it is not tracking, so without this a reader
+/// cannot tell a measured zero from a placeholder, and agreement with a placeholder would
+/// look like corroboration when it is nothing of the sort. `None` means the node published
+/// no opinion, which is distinct from a reported `false`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EndStateTracking {
+    pub orchard_tracked_by_node: Option<bool>,
+    pub ironwood_tracked_by_node: Option<bool>,
+}
+
 /// Balances the capturing node reported at the end height, which reconciliation compares
 /// its own reconstruction against.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,6 +145,8 @@ pub struct EndState {
     pub block_hash: String,
     pub reported_orchard_balance_zatoshis: Zatoshi,
     pub reported_ironwood_balance_zatoshis: Zatoshi,
+    #[serde(default)]
+    pub tracking: EndStateTracking,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -367,6 +381,7 @@ mod tests {
                 block_hash: "1".repeat(64),
                 reported_orchard_balance_zatoshis: Zatoshi::from_raw(348_400_000_000_000),
                 reported_ironwood_balance_zatoshis: Zatoshi::from_raw(17_600_000_000_000),
+                tracking: EndStateTracking::default(),
             },
             files: Vec::new(),
         }
