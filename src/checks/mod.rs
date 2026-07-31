@@ -199,19 +199,90 @@ impl CheckRegistry {
     /// Ordering is by the position of an identifier in [`ids::ALL`], so report output does
     /// not depend on the order in which checks happened to be evaluated.
     pub fn sort_canonically(&mut self) {
-        self.checks.sort_by_key(|check| {
-            ids::ALL
-                .iter()
-                .position(|id| *id == check.id)
-                .unwrap_or(usize::MAX)
+        // An identifier absent from `ids::ALL` sorts last, and ties among such identifiers
+        // are broken by the identifier itself. Without that tiebreak, two unlisted checks
+        // would keep the order they happened to be evaluated in — which would make a
+        // canonical report hash depend on evaluation order, the one thing it must not
+        // depend on. `unlisted_ids` exists so the condition can be surfaced rather than
+        // merely survived.
+        self.checks.sort_by(|first, second| {
+            rank(&first.id)
+                .cmp(&rank(&second.id))
+                .then_with(|| first.id.cmp(&second.id))
         });
     }
+
+    /// Recorded identifiers that are absent from [`ids::ALL`].
+    ///
+    /// Always empty in a correct build; `tests/completeness.rs` fails if an identifier is
+    /// defined without being listed. Exposed so a caller need not assume that.
+    pub fn unlisted_ids(&self) -> Vec<&str> {
+        let mut unlisted: Vec<&str> = self
+            .checks
+            .iter()
+            .map(|check| check.id.as_str())
+            .filter(|id| rank(id) == usize::MAX)
+            .collect();
+        unlisted.sort_unstable();
+        unlisted.dedup();
+        unlisted
+    }
+}
+
+/// Position of an identifier in the canonical presentation order.
+fn rank(id: &str) -> usize {
+    ids::ALL
+        .iter()
+        .position(|listed| *listed == id)
+        .unwrap_or(usize::MAX)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn unlisted_identifiers_sort_deterministically_rather_than_by_evaluation_order() {
+        // Two checks whose identifiers are absent from `ids::ALL` must not retain the order
+        // they were recorded in: a canonical report hash would then depend on the order the
+        // checks happened to be evaluated in.
+        let order_of = |first: &str, second: &str| {
+            let mut registry = CheckRegistry::new();
+            registry.record(Check::pass(first));
+            registry.record(Check::pass(second));
+            registry.sort_canonically();
+            registry
+                .checks
+                .iter()
+                .map(|check| check.id.clone())
+                .collect::<Vec<String>>()
+        };
+
+        assert_eq!(
+            order_of("zzz_unlisted", "aaa_unlisted"),
+            order_of("aaa_unlisted", "zzz_unlisted"),
+            "unlisted checks kept their insertion order"
+        );
+    }
+
+    #[test]
+    fn unlisted_identifiers_are_reported_rather_than_silently_accepted() {
+        let mut registry = CheckRegistry::new();
+        registry.record(Check::pass(ids::NETWORK_MATCHES));
+        registry.record(Check::pass("not_a_known_identifier"));
+
+        assert_eq!(registry.unlisted_ids(), vec!["not_a_known_identifier"]);
+    }
+
+    #[test]
+    fn a_registry_of_known_identifiers_reports_nothing_unlisted() {
+        let mut registry = CheckRegistry::new();
+        for id in ids::ALL {
+            registry.record(Check::pass(id));
+        }
+        assert!(registry.unlisted_ids().is_empty());
+    }
 
     #[test]
     fn identifiers_are_unique() {
