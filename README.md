@@ -57,6 +57,12 @@ zec-ironwood-reconcile inspect     # display bundle metadata
 Offline verification requires no node, no internet access, no database, no hosted service,
 no wallet, and no infrastructure belonging to this project.
 
+That is enforced rather than asserted. The module dependency rules forbid the verification
+path from reaching the network layer, and `tests/layering.rs` fails the build if it does.
+`scripts/check-offline-verify.sh` then traces the release binary's syscalls and fails if
+`verify` or `inspect` issues any network call, with `capture` traced alongside as a positive
+control. Both run in CI.
+
 ### Capturing
 
 ```sh

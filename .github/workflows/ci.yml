@@ -31,6 +31,28 @@ jobs:
       - name: Release build
         run: cargo build --release
 
+  offline-verification:
+    name: Verification opens no socket
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: rustup show
+
+      - name: Install strace
+        run: sudo apt-get update && sudo apt-get install -y strace
+
+      - name: Release build
+        run: cargo build --release
+
+      # Produces target/offline-check/evidence.tar.zst for the trace below.
+      - name: Build the check archive
+        run: cargo test --test capture
+
+      - name: Trace verification
+        run: ./scripts/check-offline-verify.sh
+
   supply-chain:
     name: Advisories and licenses
     runs-on: ubuntu-latest

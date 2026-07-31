@@ -709,6 +709,27 @@ fn an_untracked_pool_is_recorded_and_raises_an_advisory_without_failing() {
 }
 
 #[test]
+fn an_archive_is_published_for_the_offline_syscall_check() {
+    // `scripts/check-offline-verify.sh` traces `verify` against this archive and asserts the
+    // process issues no network syscall. That check needs a real archive and this suite is
+    // the only place one can be produced without a node, so the archive is written where the
+    // script can find it rather than into a temporary directory.
+    let (_node, capture, outcome) = capture_with(Script::default());
+    outcome.unwrap();
+
+    let destination = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/offline-check");
+    std::fs::create_dir_all(&destination).unwrap();
+    let archive = destination.join("evidence.tar.zst");
+
+    let digest =
+        zec_ironwood_reconcile::evidence::archive::pack_with_digest(&capture.root, &archive)
+            .unwrap();
+
+    assert!(archive.is_file());
+    assert_eq!(digest.len(), 64);
+}
+
+#[test]
 fn two_captures_at_different_tips_produce_identical_evidence() {
     // Independent reproduction is the property the project rests on: a second operator
     // capturing the same interval later must obtain the same evidence bytes. A node reports

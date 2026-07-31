@@ -146,6 +146,12 @@ fn the_offline_verification_path_cannot_reach_the_network_layer() {
         files.extend(rust_files_under(&source_root().join(layer)));
     }
 
+    // The top-level modules are on the verification path too. `canonical.rs` in particular
+    // is reached by every hashed artifact, and belongs to no layer directory, so the rule
+    // table above does not cover it.
+    files.push(source_root().join("canonical.rs"));
+    files.push(source_root().join("error.rs"));
+
     for file in files {
         let source = shipped_source(&file);
         if source.contains("crate::rpc")
@@ -232,6 +238,33 @@ fn test_modules_are_last_in_every_file() {
         offenders,
         Vec::<String>::new(),
         "shipped code appears after a test module, where the layering scan cannot see it"
+    );
+}
+
+#[test]
+fn no_top_level_module_outside_the_layers_reaches_the_network() {
+    // `canonical.rs` and `error.rs` sit outside every layer directory, so nothing in the
+    // rule table constrains them. They are on the verification path, so they are named here
+    // explicitly and a new top-level module must be classified rather than slip through.
+    let unclassified: Vec<String> = std::fs::read_dir(source_root())
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file() && path.extension().is_some_and(|e| e == "rs"))
+        .filter(|path| {
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            !matches!(
+                name.as_str(),
+                "lib.rs" | "main.rs" | "canonical.rs" | "error.rs"
+            )
+        })
+        .map(|path| path.file_name().unwrap().to_string_lossy().into_owned())
+        .collect();
+
+    assert_eq!(
+        unclassified,
+        Vec::<String>::new(),
+        "a top-level module exists that no layering rule covers"
     );
 }
 
