@@ -39,3 +39,4 @@ pub mod error;
 pub mod evidence;
 pub mod parse;
 pub mod reconcile;
+pub mod report;

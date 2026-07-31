@@ -44,7 +44,22 @@ reconstruction agrees.
 
 ## Synthetic fixtures
 
-Constructed inline by the test suite rather than stored as files. Currently covering:
+### Stored
+
+| File | Class | Purpose |
+| --- | --- | --- |
+| `golden-report.json` | Synthetic | Canonical serialization of a report built from synthetic ledgers. Pins the report schema and the RFC 8785 output byte for byte. |
+| `golden-report.sha256` | Synthetic | Digest of the above. |
+
+The golden report is a **regression guard, not evidence.** It proves that this build's
+canonical serialization has not changed. It says nothing about whether the figures inside it
+were derived from real chain data — they were not.
+
+If the canonical serialization changes deliberately, regenerate both files **and** increment
+the report schema version. A silent change would mean a previously published report hash is
+no longer reproducible by this build.
+
+### Constructed inline
 
 - empty input;
 - truncated block bytes;

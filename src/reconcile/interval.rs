@@ -9,6 +9,8 @@
 
 use std::collections::BTreeMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::domain::height::{BlockHeight, HeightInterval};
 use crate::domain::pool::Pool;
 use crate::domain::pool_state::ReportedPoolState;
@@ -24,7 +26,8 @@ pub struct AnchorBalances {
 }
 
 /// Whether a comparison could be made, and if so whether it agreed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Agreement {
     Agrees,
     Differs,
