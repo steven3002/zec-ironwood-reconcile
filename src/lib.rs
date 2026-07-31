@@ -32,8 +32,10 @@
 )]
 
 pub mod canonical;
+pub mod checks;
 pub mod cli;
 pub mod domain;
 pub mod error;
 pub mod evidence;
 pub mod parse;
+pub mod reconcile;

@@ -91,7 +91,7 @@ The pinned toolchain is declared in `rust-toolchain.toml`.
 | Domain types, error model, exit codes, CLI surface | Implemented and tested |
 | Evidence format, manifest, hashing, validation | Implemented and tested |
 | Transaction parsing | Implemented; unverified against real Ironwood bundles |
-| Reconciliation and checks | Not started |
+| Reconciliation and checks | Implemented and tested |
 | Reports and determinism | Not started |
 | Archive, offline verify, inspect | Not started |
 | RPC client and capture | Not started |

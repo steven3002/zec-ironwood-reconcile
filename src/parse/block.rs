@@ -18,6 +18,12 @@ use crate::parse::transaction::{self, TransactionPoolDelta};
 pub struct ParsedBlock {
     /// Height claimed by the block itself, taken from its coinbase transaction.
     pub claimed_height: BlockHeight,
+    /// Hash of this block, computed from its own header rather than taken from a node.
+    ///
+    /// Computing it here is what makes the chain-linkage check independent: the tool
+    /// verifies that the captured blocks form a chain, rather than trusting a node's
+    /// assertion that they do.
+    pub block_hash: String,
     /// Hash of the preceding block, in the display byte order used by node RPC responses.
     pub previous_block_hash: String,
     pub transactions: Vec<TransactionPoolDelta>,
@@ -89,6 +95,7 @@ pub fn parse_block(
 
     Ok(ParsedBlock {
         claimed_height,
+        block_hash: display_hash(&block.header().hash().0),
         previous_block_hash: display_hash(&block.header().prev_block.0),
         transactions,
     })

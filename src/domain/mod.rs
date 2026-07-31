@@ -6,4 +6,5 @@
 pub mod height;
 pub mod network;
 pub mod pool;
+pub mod pool_state;
 pub mod zatoshi;

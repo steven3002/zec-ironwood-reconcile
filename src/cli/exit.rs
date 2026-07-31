@@ -7,6 +7,7 @@
 //! Exit code `0` is returned only when every required check passed. A completed run whose
 //! accounting comparison failed exits `1`.
 
+use crate::checks::Status;
 use crate::error::ReconcileError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +31,18 @@ pub enum ExitCode {
 impl ExitCode {
     pub const fn code(self) -> i32 {
         self as i32
+    }
+
+    /// Exit code implied by a completed reconciliation's overall verdict.
+    ///
+    /// A warning does not fail a run: it is surfaced for a reader to weigh, but no required
+    /// check failed. A failure always produces a non-zero code, so a run whose accounting
+    /// comparison did not hold can never be mistaken for a success by a calling script.
+    pub const fn from_check_status(status: Status) -> Self {
+        match status {
+            Status::Pass | Status::Warn | Status::NotApplicable => Self::Success,
+            Status::Fail => Self::ChecksFailed,
+        }
     }
 }
 
@@ -130,6 +143,42 @@ mod tests {
             }),
             ExitCode::BlockContinuity
         );
+    }
+
+    #[test]
+    fn a_failed_check_never_exits_zero() {
+        assert_eq!(
+            ExitCode::from_check_status(Status::Fail),
+            ExitCode::ChecksFailed
+        );
+        assert_ne!(
+            ExitCode::from_check_status(Status::Fail).code(),
+            ExitCode::Success.code()
+        );
+    }
+
+    #[test]
+    fn a_passing_or_warning_run_exits_zero() {
+        for status in [Status::Pass, Status::Warn, Status::NotApplicable] {
+            assert_eq!(ExitCode::from_check_status(status), ExitCode::Success);
+        }
+    }
+
+    #[test]
+    fn a_registry_containing_any_failure_maps_to_a_non_zero_code() {
+        use crate::checks::{Check, CheckRegistry, ids};
+
+        let mut registry = CheckRegistry::new();
+        registry.record(Check::pass(ids::NETWORK_MATCHES));
+        registry.record(Check::pass(ids::ANCHOR_BLOCK_PRESENT));
+        registry.record(Check::fail(
+            ids::ORCHARD_END_BALANCE_MATCHES,
+            "reconstruction does not match the reported balance",
+        ));
+
+        let code = ExitCode::from_check_status(registry.overall_status());
+        assert_eq!(code, ExitCode::ChecksFailed);
+        assert_eq!(code.code(), 1);
     }
 
     #[test]
