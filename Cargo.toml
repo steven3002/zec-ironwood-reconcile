@@ -1,0 +1,50 @@
+[package]
+name = "zec-ironwood-reconcile"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT OR Apache-2.0"
+description = "Reconstructs Orchard and Ironwood chain value-pool changes over a bounded Zcash block interval from transaction-level public data, and produces offline-verifiable evidence."
+readme = "README.md"
+keywords = ["zcash", "orchard", "ironwood", "reconciliation", "audit"]
+categories = ["command-line-utilities", "cryptography::cryptocurrencies"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+sha2 = "0.10"
+hex = "0.4"
+
+# RFC 8785 canonical JSON. Report and manifest hashes are only reproducible if
+# serialization is byte-stable across machines and library versions.
+serde_jcs = "0.2"
+
+# RFC 3339 timestamps for manifest metadata. Timestamps never enter a hashed report.
+time = { version = "0.3", features = ["formatting", "parsing"] }
+
+# Transaction deserialization. These crates are used strictly to decode consensus bytes;
+# all value-pool accounting is implemented in this crate.
+zcash_primitives = "0.30"
+zcash_protocol = "0.10"
+orchard = "0.15"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+arithmetic_side_effects = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_sign_loss = "deny"
+float_arithmetic = "deny"
+indexing_slicing = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+
+[profile.release]
+overflow-checks = true
