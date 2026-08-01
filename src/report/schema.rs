@@ -19,13 +19,13 @@ use crate::domain::zatoshi::Zatoshi;
 use crate::reconcile::interval::Agreement;
 
 /// Report schema version understood by this build.
-pub const REPORT_SCHEMA_VERSION: &str = "1.0.0";
+pub const REPORT_SCHEMA_VERSION: &str = "1.1.0";
 
 /// The boundary of what this tool's output may be cited for.
 ///
 /// These strings are part of the schema. They appear verbatim in every report so that a
 /// report cannot circulate separated from its own limitations.
-pub const LIMITATIONS: [&str; 8] = [
+pub const LIMITATIONS: [&str; 9] = [
     "Does not verify zero-knowledge proofs.",
     "Does not independently validate all Zcash consensus rules.",
     "Does not prove whether historical counterfeiting occurred.",
@@ -34,6 +34,9 @@ pub const LIMITATIONS: [&str; 8] = [
     "Does not prove that the Orchard pool was never exploited.",
     "Does not replace full-node consensus validation.",
     "Does not constitute a formal security audit.",
+    "The Orchard outflow and Ironwood inflow figures are separate observations, not a \
+balance. Ironwood also receives newly issued value directly from coinbase transactions, so \
+Ironwood inflow exceeding Orchard outflow is expected and is not unexplained supply.",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,11 +72,15 @@ pub struct Reported {
     pub ironwood_end_zatoshis: Option<Zatoshi>,
 }
 
-/// Cumulative flow across the turnstile boundary, reported as an observation.
+/// Cumulative value out of Orchard and into Ironwood, over the interval.
+///
+/// Two separate observations, deliberately not presented as a balance: Ironwood also
+/// receives newly issued value directly from coinbase transactions, so an inflow larger
+/// than Orchard's outflow is ordinary rather than unexplained.
 ///
 /// No inequality between these figures is asserted. See `ACCOUNTING_MODEL.md`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TurnstileObserved {
+pub struct PoolFlowsObserved {
     pub orchard_outflow_zatoshis: Zatoshi,
     pub ironwood_inflow_zatoshis: Zatoshi,
 }
@@ -122,7 +129,7 @@ pub struct Report {
     pub anchor: ReportAnchor,
     pub reconstructed: Reconstructed,
     pub reported: Reported,
-    pub turnstile_observed: TurnstileObserved,
+    pub pool_flows_observed: PoolFlowsObserved,
     pub per_height_summary: PerHeightSummary,
     pub per_height: Vec<HeightRow>,
     pub checks: Vec<Check>,

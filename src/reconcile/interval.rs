@@ -108,15 +108,22 @@ impl HeightOutcome {
     }
 }
 
-/// Cumulative flow across the turnstile boundary.
+/// Cumulative value out of Orchard and into Ironwood, over the interval.
 ///
-/// These are **observations**, not assertions. An intuitive invariant — that Ironwood
-/// cannot receive more than Orchard released — would hold only if the Orchard turnstile
-/// were the sole route into Ironwood. Whether value may also enter Ironwood directly from
-/// the transparent pool is not established, and asserting an unsourced inequality could
-/// emit a false failure against a perfectly valid chain.
+/// These are two **separate observations**, not a balance, and no relationship between them
+/// is asserted.
+///
+/// The intuitive invariant — that Ironwood cannot receive more than Orchard released — is
+/// **false**, and the first real Ironwood block on testnet demonstrates it. At height
+/// 4,134,683 the pool gained 125,000,000 zatoshi while Orchard released nothing: the block
+/// held a single coinbase transaction distributing the block subsidy across the transparent,
+/// lockbox and Ironwood pools. Ironwood receives newly issued value directly, so its inflow
+/// routinely exceeds Orchard's outflow.
+///
+/// Had this been asserted as a check rather than reported as an observation, the tool would
+/// have emitted a failure against a perfectly valid chain at the first opportunity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct TurnstileObservation {
+pub struct PoolFlows {
     /// Total value that left the Orchard pool, as a positive magnitude.
     pub orchard_outflow: Zatoshi,
     /// Total value that entered the Ironwood pool, as a positive magnitude.
@@ -133,7 +140,7 @@ pub struct IntervalOutcome {
     pub cumulative_ironwood_delta: Zatoshi,
     pub expected_end_orchard: Zatoshi,
     pub expected_end_ironwood: Zatoshi,
-    pub turnstile: TurnstileObservation,
+    pub pool_flows: PoolFlows,
 }
 
 impl IntervalOutcome {
@@ -224,7 +231,7 @@ pub fn reconcile_interval(
         cumulative_ironwood_delta: narrow(ironwood_cumulative)?,
         expected_end_orchard: narrow(orchard_running)?,
         expected_end_ironwood: narrow(ironwood_running)?,
-        turnstile: TurnstileObservation {
+        pool_flows: PoolFlows {
             orchard_outflow: narrow(orchard_outflow)?,
             ironwood_inflow: narrow(ironwood_inflow)?,
         },
@@ -410,8 +417,8 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(outcome.turnstile.orchard_outflow, Zatoshi::from_raw(500));
-        assert_eq!(outcome.turnstile.ironwood_inflow, Zatoshi::from_raw(450));
+        assert_eq!(outcome.pool_flows.orchard_outflow, Zatoshi::from_raw(500));
+        assert_eq!(outcome.pool_flows.ironwood_inflow, Zatoshi::from_raw(450));
     }
 
     #[test]
@@ -427,7 +434,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(outcome.turnstile.orchard_outflow, Zatoshi::from_raw(300));
+        assert_eq!(outcome.pool_flows.orchard_outflow, Zatoshi::from_raw(300));
     }
 
     #[test]

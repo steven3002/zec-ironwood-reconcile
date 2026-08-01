@@ -11,8 +11,8 @@ use crate::domain::zatoshi::Zatoshi;
 use crate::error::ReconcileError;
 use crate::reconcile::interval::IntervalOutcome;
 use crate::report::schema::{
-    HeightRow, PerHeightSummary, REPORT_SCHEMA_VERSION, Reconstructed, Report, ReportAnchor,
-    ReportInterval, Reported, TurnstileObserved,
+    HeightRow, PerHeightSummary, PoolFlowsObserved, REPORT_SCHEMA_VERSION, Reconstructed, Report,
+    ReportAnchor, ReportInterval, Reported,
 };
 
 /// Identity of the bundle a report describes, taken from its manifest.
@@ -96,9 +96,9 @@ pub fn build(
             orchard_end_zatoshis: context.reported_end_orchard,
             ironwood_end_zatoshis: context.reported_end_ironwood,
         },
-        turnstile_observed: TurnstileObserved {
-            orchard_outflow_zatoshis: outcome.turnstile.orchard_outflow,
-            ironwood_inflow_zatoshis: outcome.turnstile.ironwood_inflow,
+        pool_flows_observed: PoolFlowsObserved {
+            orchard_outflow_zatoshis: outcome.pool_flows.orchard_outflow,
+            ironwood_inflow_zatoshis: outcome.pool_flows.ironwood_inflow,
         },
         per_height_summary: summary,
         per_height,
@@ -243,14 +243,14 @@ mod tests {
     }
 
     #[test]
-    fn turnstile_flows_are_carried_as_observations() {
+    fn pool_flows_are_carried_as_observations() {
         let report = build(&outcome(BTreeMap::new()), &registry(), &context()).unwrap();
         assert_eq!(
-            report.turnstile_observed.orchard_outflow_zatoshis,
+            report.pool_flows_observed.orchard_outflow_zatoshis,
             Zatoshi::from_raw(500)
         );
         assert_eq!(
-            report.turnstile_observed.ironwood_inflow_zatoshis,
+            report.pool_flows_observed.ironwood_inflow_zatoshis,
             Zatoshi::from_raw(500)
         );
     }

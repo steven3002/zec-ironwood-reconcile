@@ -32,8 +32,8 @@ mod tests {
     use crate::domain::network::Network;
     use crate::domain::zatoshi::Zatoshi;
     use crate::report::schema::{
-        PerHeightSummary, Reconstructed, Report, ReportAnchor, ReportInterval, Reported,
-        TurnstileObserved,
+        PerHeightSummary, PoolFlowsObserved, Reconstructed, Report, ReportAnchor, ReportInterval,
+        Reported,
     };
 
     fn sample() -> PerformanceMetadata {
@@ -71,7 +71,7 @@ mod tests {
                 orchard_end_zatoshis: None,
                 ironwood_end_zatoshis: None,
             },
-            turnstile_observed: TurnstileObserved {
+            pool_flows_observed: PoolFlowsObserved {
                 orchard_outflow_zatoshis: Zatoshi::ZERO,
                 ironwood_inflow_zatoshis: Zatoshi::ZERO,
             },

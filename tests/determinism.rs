@@ -249,6 +249,28 @@ fn the_hash_is_lowercase_hexadecimal_of_the_expected_width() {
     assert!(!hash.chars().any(|c| c.is_ascii_uppercase()));
 }
 
+/// Rewrites the committed golden file from the current schema.
+///
+/// Ignored by default, because running it unconditionally would defeat the guard below.
+/// Run it deliberately, and only alongside a `REPORT_SCHEMA_VERSION` increment:
+///
+/// ```text
+/// cargo test --test determinism -- --ignored regenerate_the_golden_file
+/// ```
+#[test]
+#[ignore = "regenerates a committed fixture; run only with a deliberate schema change"]
+fn regenerate_the_golden_file() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let (bytes, hash) = report::canonical_bytes_and_hash(&build_report()).unwrap();
+
+    std::fs::write(root.join("tests/fixtures/golden-report.json"), &bytes).unwrap();
+    std::fs::write(
+        root.join("tests/fixtures/golden-report.sha256"),
+        format!("{hash}\n"),
+    )
+    .unwrap();
+}
+
 /// Pins the canonical serialization against a committed golden file.
 ///
 /// Any change to the report schema, to field naming, or to the canonicalization procedure

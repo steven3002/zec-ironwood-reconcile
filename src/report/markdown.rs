@@ -24,7 +24,7 @@ pub fn render(report: &Report) -> String {
     render_header(&mut out, report);
     render_summary(&mut out, report);
     render_reconciliation(&mut out, report);
-    render_turnstile(&mut out, report);
+    render_pool_flows(&mut out, report);
     render_per_height(&mut out, report);
     render_checks(&mut out, report);
     render_limitations(&mut out, report);
@@ -92,23 +92,25 @@ fn render_reconciliation(out: &mut String, report: &Report) {
     let _ = writeln!(out);
 }
 
-fn render_turnstile(out: &mut String, report: &Report) {
-    let _ = writeln!(out, "## Turnstile flow (observed)");
+fn render_pool_flows(out: &mut String, report: &Report) {
+    let _ = writeln!(out, "## Pool flows (observed)");
     let _ = writeln!(out);
     let _ = writeln!(
         out,
-        "Reported as observations. No inequality between these figures is asserted."
+        "Two separate observations, not a balance. Ironwood also receives newly issued value \
+         directly from coinbase transactions, so an Ironwood inflow larger than the Orchard \
+         outflow is ordinary and is not unexplained supply."
     );
     let _ = writeln!(out);
     let _ = writeln!(
         out,
         "- Value that left the Orchard pool: {} zatoshi",
-        report.turnstile_observed.orchard_outflow_zatoshis
+        report.pool_flows_observed.orchard_outflow_zatoshis
     );
     let _ = writeln!(
         out,
         "- Value that entered the Ironwood pool: {} zatoshi",
-        report.turnstile_observed.ironwood_inflow_zatoshis
+        report.pool_flows_observed.ironwood_inflow_zatoshis
     );
     let _ = writeln!(out);
 }
@@ -378,9 +380,18 @@ mod tests {
     }
 
     #[test]
-    fn turnstile_figures_are_labelled_as_observations() {
+    fn pool_flow_figures_are_labelled_as_observations_and_not_as_a_balance() {
+        // A reader seeing an Ironwood inflow with no matching Orchard outflow must be told
+        // where the difference comes from. On testnet the first Ironwood value arrived in a
+        // coinbase, so the gap is issuance, not unexplained supply.
         let markdown = render(&sample());
-        assert!(markdown.contains("observed") || markdown.contains("observations"));
-        assert!(markdown.contains("No inequality between these figures is asserted."));
+
+        assert!(markdown.contains("observations"));
+        assert!(markdown.contains("not a balance"));
+        assert!(markdown.contains("coinbase"));
+        assert!(
+            !markdown.contains("Turnstile"),
+            "the report still frames these figures as a turnstile relationship"
+        );
     }
 }
