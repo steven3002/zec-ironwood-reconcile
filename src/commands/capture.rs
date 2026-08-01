@@ -4,7 +4,7 @@
 //! and a request, runs the capture, and renders the outcome; every decision about whether
 //! the capture is sound is made in [`crate::capture`].
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::capture::plan::CaptureRequest;
@@ -62,6 +62,13 @@ pub fn capture(args: &CaptureArgs, quiet: bool) -> Result<CaptureSummary, Reconc
         progress_interval: PROGRESS_INTERVAL,
     };
 
+    // Checked before the node is read rather than after. An archive that cannot be written
+    // is worth discovering in the first second of a capture, not once every block has been
+    // fetched.
+    if let Some(archive_path) = args.archive.as_deref() {
+        refuse_existing_archive(archive_path, args.overwrite)?;
+    }
+
     let client = NodeClient::new(&transport);
     let mut summary = run::run(&client, &options, &output_root(args), &mut emit)?;
 
@@ -75,6 +82,25 @@ pub fn capture(args: &CaptureArgs, quiet: bool) -> Result<CaptureSummary, Reconc
     }
 
     Ok(summary)
+}
+
+/// Refuses to replace an archive that already exists unless asked to.
+///
+/// A bundle directory already refuses to be written over without `--overwrite`. The archive
+/// is the artifact actually published alongside its digest, so silently replacing one — and
+/// the `.sha256` beside it — is the more damaging of the two omissions: a third party
+/// holding the old digest is left unable to verify anything, with nothing to say why.
+fn refuse_existing_archive(path: &Path, overwrite: bool) -> Result<(), ReconcileError> {
+    if overwrite || !path.exists() {
+        return Ok(());
+    }
+
+    Err(ReconcileError::InvalidInput {
+        reason: format!(
+            "{} already exists; pass --overwrite to replace it and its digest",
+            path.display()
+        ),
+    })
 }
 
 fn output_mode(args: &CaptureArgs) -> OutputMode {
@@ -190,6 +216,41 @@ mod tests {
         let mut args = args();
         args.overwrite = true;
         assert_eq!(output_mode(&args), OutputMode::Overwrite);
+    }
+
+    #[test]
+    fn an_existing_archive_is_not_replaced_without_being_asked() {
+        // The bundle directory already refuses this. The archive is the artifact actually
+        // published alongside a digest, so replacing one silently is the worse omission.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("bundle.tar.zst");
+        std::fs::write(&path, b"a previously published archive").unwrap();
+
+        let error = refuse_existing_archive(&path, false).unwrap_err();
+        assert!(
+            matches!(&error, ReconcileError::InvalidInput { reason } if reason.contains("--overwrite")),
+            "{error:?}"
+        );
+
+        // Refused before anything is read, so the existing bytes are still there.
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"a previously published archive"
+        );
+    }
+
+    #[test]
+    fn an_absent_archive_path_is_accepted() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(refuse_existing_archive(&dir.path().join("new.tar.zst"), false).is_ok());
+    }
+
+    #[test]
+    fn overwrite_permits_replacing_an_existing_archive() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("bundle.tar.zst");
+        std::fs::write(&path, b"old").unwrap();
+        assert!(refuse_existing_archive(&path, true).is_ok());
     }
 
     #[test]

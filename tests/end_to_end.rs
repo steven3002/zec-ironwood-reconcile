@@ -318,3 +318,143 @@ fn digest_of_every_file(root: &Path) -> std::collections::BTreeMap<String, Strin
     }
     digests
 }
+
+/// Rewrites the manifest's per-file digests to match what is on disk.
+///
+/// A bundle's author can always reseal it, so a tampering test that only trips the digest
+/// check proves nothing about whether the contents are examined. The detached digest is
+/// removed because it covers the manifest this rewrites.
+fn reseal(root: &Path) {
+    let manifest_path = root.join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
+
+    for entry in manifest["files"].as_array_mut().unwrap() {
+        let relative = entry["path"].as_str().unwrap().to_owned();
+        let path = root.join(&relative);
+        if path.is_file() {
+            let bytes = std::fs::read(&path).unwrap();
+            entry["sha256"] =
+                serde_json::json!(zec_ironwood_reconcile::canonical::sha256_hex(&bytes));
+            entry["size_bytes"] = serde_json::json!(bytes.len());
+        }
+    }
+
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    let _ = std::fs::remove_file(root.join("manifest.sha256"));
+}
+
+#[test]
+fn a_height_absent_from_the_bundle_is_unusable_evidence_not_a_filesystem_fault() {
+    // A bundle whose manifest indexes an interval but omits one of its heights describes
+    // the bundle, not this machine. Reporting it as a filesystem error hands a caller an
+    // exit code about the disk and a message naming an absolute path rather than the
+    // missing height.
+    let (_dir, root) = scratch_copy();
+
+    let missing = format!("blocks/{}.hex", FIXTURE_HEIGHT + 1);
+    std::fs::remove_file(root.join(&missing)).unwrap();
+
+    let manifest_path = root.join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["files"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|entry| entry["path"].as_str() != Some(missing.as_str()));
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    reseal(&root);
+
+    let error = reconcile::reconcile(&root).unwrap_err();
+    assert!(
+        matches!(&error, ReconcileError::MissingFile { path } if path == &missing),
+        "expected the missing height to be named, got {error:?}"
+    );
+    assert_eq!(ExitCode::from(&error), ExitCode::EvidenceUnavailable);
+}
+
+#[test]
+fn a_pool_state_file_belonging_to_another_height_is_refused() {
+    // Nothing in a bundle's file names ties a pool record to the block it describes, and
+    // resealing the manifest is always available to whoever produced the bundle. The record
+    // states its own height and block hash, so the binding is checked rather than assumed.
+    let (_dir, root) = scratch_copy();
+
+    let donor = root.join(format!("blocks/{}.pools.json", FIXTURE_HEIGHT + 1));
+    let target = root.join(format!("blocks/{FIXTURE_HEIGHT}.pools.json"));
+    std::fs::copy(&donor, &target).unwrap();
+    reseal(&root);
+
+    let error = reconcile::reconcile(&root).unwrap_err();
+    match &error {
+        ReconcileError::EvidenceInconsistent { path, reason } => {
+            assert!(path.contains(&FIXTURE_HEIGHT.to_string()), "{path}");
+            assert!(
+                reason.contains(&(FIXTURE_HEIGHT + 1).to_string()),
+                "{reason}"
+            );
+        }
+        other => panic!("expected an evidence inconsistency, got {other:?}"),
+    }
+    assert_eq!(ExitCode::from(&error), ExitCode::EvidenceUnavailable);
+}
+
+#[test]
+fn a_pool_state_file_describing_a_different_block_is_refused() {
+    // The height agrees here, so only the block-hash binding can catch it. The hash used is
+    // the one this crate computes from the block's own header, never one the bundle asserts.
+    let (_dir, root) = scratch_copy();
+
+    let target = root.join(format!("blocks/{FIXTURE_HEIGHT}.pools.json"));
+    let mut state: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&target).unwrap()).unwrap();
+    state["hash"] =
+        serde_json::json!("0000000000000000000000000000000000000000000000000000000000000001");
+    std::fs::write(&target, serde_json::to_vec(&state).unwrap()).unwrap();
+    reseal(&root);
+
+    let error = reconcile::reconcile(&root).unwrap_err();
+    assert!(
+        matches!(&error, ReconcileError::EvidenceInconsistent { reason, .. }
+            if reason.contains("0000000000000000000000000000000000000000000000000000000000000001")),
+        "expected the declared hash to be named, got {error:?}"
+    );
+    assert_eq!(ExitCode::from(&error), ExitCode::EvidenceUnavailable);
+}
+
+#[test]
+fn the_report_records_the_build_that_reconciled_it_not_the_one_named_by_the_bundle() {
+    // Check semantics decide every verdict and therefore the report hash, so two builds can
+    // reconcile one bundle to two different hashes. The only version the report used to
+    // carry came from the manifest — a field the bundle's author writes — so a verifier
+    // comparing hashes could not tell a difference in evidence from a difference in builds.
+    let (_dir, root) = scratch_copy();
+
+    let manifest_path = root.join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["tool"]["version"] = serde_json::json!("0.0.1-supplied-by-the-bundle");
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    std::fs::remove_file(root.join("manifest.sha256")).unwrap();
+
+    let report = reconcile::reconcile(&root).unwrap().report;
+
+    assert_eq!(report.tool_version, "0.0.1-supplied-by-the-bundle");
+    assert_eq!(report.reconciled_by_version, env!("CARGO_PKG_VERSION"));
+    assert_ne!(
+        report.reconciled_by_version, report.tool_version,
+        "the reconciling build's version must not be taken from the bundle"
+    );
+}

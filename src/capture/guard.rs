@@ -8,9 +8,8 @@
 //! Every function here is pure. They take what a node said and decide, so they are tested
 //! without a node and cannot behave differently in production than in a test.
 
-use crate::domain::height::BlockHeight;
+use crate::domain::height::{BlockHeight, HeightInterval};
 use crate::domain::network::Network;
-use crate::domain::pool::Pool;
 use crate::error::ReconcileError;
 use crate::evidence::pool_state_file::CapturedBlockState;
 use crate::rpc::dto::{ChainInfo, NodeInfo};
@@ -218,42 +217,51 @@ pub fn check_height_matches(
     Ok(())
 }
 
-/// Observations worth recording that do not invalidate the capture.
-pub fn advisories(network: Network, end_state: &CapturedBlockState) -> Vec<Advisory> {
+/// Observations about one captured block that are worth recording but do not invalidate it.
+///
+/// Everything here is a statement about the single height `state` describes. A property of
+/// the interval as a whole belongs in [`interval_advisories`], which is given the interval;
+/// deriving one from a single block was how the tool came to state that no Ironwood value
+/// could exist in an interval that in fact ran well past activation.
+pub fn advisories(state: &CapturedBlockState) -> Vec<Advisory> {
     let mut advisories = Vec::new();
 
-    let untracked = end_state.pools.untracked_reconstructed_pools();
-    if !untracked.is_empty() {
-        let names: Vec<&str> = untracked.iter().map(|pool| pool.rpc_id()).collect();
+    let empty = state.pools.empty_reconstructed_pools();
+    if !empty.is_empty() {
+        let names: Vec<&str> = empty.iter().map(|pool| pool.rpc_id()).collect();
         advisories.push(Advisory::new(
-            "pool_not_tracked_by_node",
+            "pool_balance_is_zero",
             format!(
-                "the node reports it is not tracking {} at height {}, so the zero balance it \
-                 states there is a placeholder rather than a measurement",
+                "the node reports a balance of zero for {} at height {}, so any comparison \
+                 against that pool at this height is a comparison against zero",
                 names.join(", "),
-                end_state.height
+                state.height
             ),
         ));
     }
 
-    if !network.is_post_activation(end_state.height) {
+    advisories
+}
+
+/// Observations about the interval being captured, as opposed to any one block in it.
+///
+/// The Ironwood pool cannot hold value below activation, so an interval lying entirely
+/// below it can contain none. That is a claim about the interval's **end**: an interval
+/// that starts below activation and runs past it contains Ironwood-capable heights, and
+/// saying otherwise would put a false statement in front of whoever captured the most
+/// interesting interval the tool supports.
+pub fn interval_advisories(network: Network, interval: HeightInterval) -> Vec<Advisory> {
+    let mut advisories = Vec::new();
+
+    if !network.is_post_activation(interval.end_height()) {
         advisories.push(Advisory::new(
             "interval_precedes_activation",
             format!(
-                "height {} precedes the {IRONWOOD_UPGRADE_NAME} activation height {} on {network}, \
-                 so no Ironwood value can exist in this interval",
-                end_state.height,
+                "the interval ends at height {}, below the {IRONWOOD_UPGRADE_NAME} activation \
+                 height {} on {network}, so no Ironwood value can exist in it",
+                interval.end_height(),
                 network.ironwood_activation_height()
             ),
-        ));
-    }
-
-    if end_state.pools.monitored(Pool::Orchard).is_none() {
-        advisories.push(Advisory::new(
-            "node_omits_tracking_flag",
-            "the node does not publish a `monitored` flag, so a reported zero cannot be \
-             distinguished from an untracked pool"
-                .to_owned(),
         ));
     }
 
@@ -263,6 +271,7 @@ pub fn advisories(network: Network, end_state: &CapturedBlockState) -> Vec<Advis
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::pool::Pool;
     use crate::domain::zatoshi::Zatoshi;
     use crate::rpc::dto::Upgrade;
     use std::collections::BTreeMap;
@@ -503,45 +512,51 @@ mod tests {
     }
 
     #[test]
-    fn an_untracked_pool_raises_an_advisory_rather_than_a_failure() {
+    fn an_empty_pool_raises_an_advisory_rather_than_a_failure() {
+        // An empty pool is usable evidence — the comparison is simply against zero. It is
+        // worth saying so, but it is not a reason to refuse the capture.
         let mut state = pool_state(3_428_143);
-        state.pools = state.pools.with_monitored(Pool::Ironwood, false);
+        state.pools = state.pools.with_balance(Pool::Ironwood, Zatoshi::ZERO);
 
         assert!(check_pool_state_usable(&state).is_ok());
-        let ids: Vec<&str> = advisories(Network::Mainnet, &state)
+        let ids: Vec<&str> = advisories(&state)
             .iter()
             .map(|advisory| advisory.id)
             .collect();
-        assert!(ids.contains(&"pool_not_tracked_by_node"), "{ids:?}");
+        assert!(ids.contains(&"pool_balance_is_zero"), "{ids:?}");
+    }
+
+    fn advisory_ids(network: Network, start: u32, end: u32) -> Vec<&'static str> {
+        let interval = HeightInterval::new(BlockHeight::new(start), BlockHeight::new(end)).unwrap();
+        interval_advisories(network, interval)
+            .iter()
+            .map(|advisory| advisory.id)
+            .collect()
     }
 
     #[test]
-    fn an_interval_before_activation_raises_an_advisory() {
-        let state = pool_state(3_000_000);
-        let ids: Vec<&str> = advisories(Network::Mainnet, &state)
-            .iter()
-            .map(|advisory| advisory.id)
-            .collect();
+    fn an_interval_lying_entirely_before_activation_raises_an_advisory() {
+        let ids = advisory_ids(Network::Mainnet, 3_000_000, 3_000_100);
         assert!(ids.contains(&"interval_precedes_activation"), "{ids:?}");
     }
 
     #[test]
-    fn a_node_omitting_the_tracking_flag_raises_an_advisory() {
-        use crate::domain::pool_state::ReportedPoolState;
-        let mut state = pool_state(3_428_143);
-        state.pools = ReportedPoolState::new(BlockHeight::new(3_428_143))
-            .with_balance(Pool::Orchard, Zatoshi::ZERO)
-            .with_balance(Pool::Ironwood, Zatoshi::ZERO);
+    fn an_interval_reaching_past_activation_is_not_called_pre_activation() {
+        // The interval starts below activation and ends above it, so it does contain
+        // Ironwood-capable heights. Deciding this from the anchor alone told the operator
+        // that no Ironwood value could exist in exactly the interval where it first can.
+        let ids = advisory_ids(Network::Mainnet, 3_428_142, 3_428_200);
+        assert!(!ids.contains(&"interval_precedes_activation"), "{ids:?}");
+    }
 
-        let ids: Vec<&str> = advisories(Network::Mainnet, &state)
-            .iter()
-            .map(|advisory| advisory.id)
-            .collect();
-        assert!(ids.contains(&"node_omits_tracking_flag"), "{ids:?}");
+    #[test]
+    fn an_interval_starting_exactly_at_activation_is_not_called_pre_activation() {
+        let ids = advisory_ids(Network::Mainnet, 3_428_143, 3_428_150);
+        assert!(!ids.contains(&"interval_precedes_activation"), "{ids:?}");
     }
 
     #[test]
     fn a_healthy_post_activation_capture_raises_no_advisories() {
-        assert!(advisories(Network::Mainnet, &pool_state(3_428_200)).is_empty());
+        assert!(advisories(&pool_state(3_428_200)).is_empty());
     }
 }

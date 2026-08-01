@@ -74,6 +74,7 @@ pub fn build(
     Ok(Report {
         report_schema_version: REPORT_SCHEMA_VERSION.to_owned(),
         tool_version: context.tool_version.clone(),
+        reconciled_by_version: env!("CARGO_PKG_VERSION").to_owned(),
         bundle_id: context.bundle_id.clone(),
         network: context.network,
         interval: ReportInterval {

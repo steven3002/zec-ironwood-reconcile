@@ -43,6 +43,38 @@ bisection, and the flag flips exactly there.
 **What these do not show.** They are pre-activation testnet blocks. They pin *response
 shape*, not Ironwood behaviour, and cannot close Gate 1.
 
+### Block bytes — the activation boundary
+
+`bundles/testnet-activation-boundary/` is a complete evidence bundle captured from a live
+**Zebra 6.2.3** node on **testnet**, on **2026-08-01**.
+
+```
+Bundle id:     testnet-4133998-4134010
+Interval:      4133999..=4134010, anchored at 4133998
+Node:          zebra 6.2.3
+```
+
+**Why this interval.** It is the only shape in which all three activation checks reach a
+verdict at once. It begins one block *below* NU6.3 activation at 4,134,000 and ends ten
+blocks above it, so:
+
+- `no_ironwood_before_activation` has a pre-activation height to range over (4,133,999);
+- `orchard_withdrawal_only` has post-activation heights to range over;
+- `ironwood_anchor_zero` has the block before activation inside the interval.
+
+Before this fixture existed, every captured interval lay wholly on one side of the boundary
+and all three checks had only ever been observed reporting *not applicable* — which reads
+like coverage in a summary and is none. `tests/activation_boundary.rs` pins each verdict.
+
+**The cross-check.** Zebra reports, for every height in the interval, an Orchard balance of
+25,292,367,414,135 zatoshi unchanged across activation, an Orchard delta of zero, and an
+Ironwood balance of zero. The reconstruction from the blocks' own bytes agrees at every
+height on both axes.
+
+**What it does not show.** Ironwood receives no value until 4,134,683, so this bundle
+demonstrates the boundary *rules*, not Ironwood value movement. That is what
+`bundles/testnet-ironwood/` is for.
+
 ### Block bytes — the Ironwood bundle
 
 `bundles/testnet-ironwood/` is a complete evidence bundle captured from a live **Zebra

@@ -1,0 +1,42 @@
+{
+  "hash": "000003943e1a2c60c17b69ed4d448ea9296019a247f1134b507917941957fccd",
+  "height": 4134000,
+  "valuePools": [
+    {
+      "chainValueZat": 1552193223190525,
+      "id": "transparent",
+      "monitored": true,
+      "valueDeltaZat": 137500000
+    },
+    {
+      "chainValueZat": 42832983037484,
+      "id": "sprout",
+      "monitored": true,
+      "valueDeltaZat": 0
+    },
+    {
+      "chainValueZat": 152485170442899,
+      "id": "sapling",
+      "monitored": true,
+      "valueDeltaZat": 0
+    },
+    {
+      "chainValueZat": 25292367414135,
+      "id": "orchard",
+      "monitored": true,
+      "valueDeltaZat": 0
+    },
+    {
+      "chainValueZat": 11203143750000,
+      "id": "lockbox",
+      "monitored": true,
+      "valueDeltaZat": 18750000
+    },
+    {
+      "chainValueZat": 0,
+      "id": "ironwood",
+      "monitored": false,
+      "valueDeltaZat": 0
+    }
+  ]
+}

@@ -54,6 +54,9 @@ pub enum ReconcileError {
     #[error("evidence manifest invalid: {reason}")]
     ManifestInvalid { reason: String },
 
+    #[error("evidence file {path} is inconsistent with the bundle: {reason}")]
+    EvidenceInconsistent { path: String, reason: String },
+
     #[error("value-pool mismatch for {pool}: calculated {calculated}, reported {reported}")]
     PoolMismatch {
         pool: String,
@@ -110,6 +113,7 @@ impl ReconcileError {
             Self::HashMismatch { .. } => "evidence_hash_mismatch",
             Self::MissingFile { .. } => "evidence_file_missing",
             Self::ManifestInvalid { .. } => "manifest_invalid",
+            Self::EvidenceInconsistent { .. } => "evidence_inconsistent",
             Self::PoolMismatch { .. } => "pool_balance_mismatch",
             Self::ArithmeticOverflow => "arithmetic_overflow",
             Self::ValueOutOfBounds { .. } => "value_out_of_bounds",
@@ -168,6 +172,10 @@ mod tests {
             },
             ReconcileError::ManifestInvalid {
                 reason: "schema".to_owned(),
+            },
+            ReconcileError::EvidenceInconsistent {
+                path: "blocks/1.pools.json".to_owned(),
+                reason: "declares another height".to_owned(),
             },
             ReconcileError::PoolMismatch {
                 pool: "orchard".to_owned(),

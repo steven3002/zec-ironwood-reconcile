@@ -1,0 +1,112 @@
+{
+  "bestblockhash": "002aeedba000f3ad4477fe9aa209eec335de91305205375f36c745b66ea27ad2",
+  "blocks": 4229403,
+  "chain": "test",
+  "chainSupply": {
+    "chainValue": 17989136.06585043,
+    "chainValueZat": 1798913606585043,
+    "monitored": true
+  },
+  "chainwork": 0,
+  "commitments": 0,
+  "consensus": {
+    "chaintip": "37a5165b",
+    "nextblock": "37a5165b"
+  },
+  "difficulty": 8.855152262401406,
+  "estimatedheight": 4229403,
+  "headers": 4229403,
+  "pruned": false,
+  "size_on_disk": 10348211294,
+  "upgrades": {
+    "2bb40e60": {
+      "activationheight": 584000,
+      "name": "Blossom",
+      "status": "active"
+    },
+    "37a5165b": {
+      "activationheight": 4134000,
+      "name": "NU6.3",
+      "status": "active"
+    },
+    "4dec4df0": {
+      "activationheight": 3536500,
+      "name": "NU6.1",
+      "status": "active"
+    },
+    "5437f330": {
+      "activationheight": 4052000,
+      "name": "NU6.2",
+      "status": "active"
+    },
+    "5ba81b19": {
+      "activationheight": 207500,
+      "name": "Overwinter",
+      "status": "active"
+    },
+    "76b809bb": {
+      "activationheight": 280000,
+      "name": "Sapling",
+      "status": "active"
+    },
+    "c2d6d0b4": {
+      "activationheight": 1842420,
+      "name": "NU5",
+      "status": "active"
+    },
+    "c8e71055": {
+      "activationheight": 2976000,
+      "name": "NU6",
+      "status": "active"
+    },
+    "e9ff75a6": {
+      "activationheight": 1028500,
+      "name": "Canopy",
+      "status": "active"
+    },
+    "f5b9230b": {
+      "activationheight": 903800,
+      "name": "Heartwood",
+      "status": "active"
+    }
+  },
+  "valuePools": [
+    {
+      "chainValue": 15621560.73930827,
+      "chainValueZat": 1562156073930827,
+      "id": "transparent",
+      "monitored": true
+    },
+    {
+      "chainValue": 428329.83037484,
+      "chainValueZat": 42832983037484,
+      "id": "sprout",
+      "monitored": true
+    },
+    {
+      "chainValue": 1525175.58245816,
+      "chainValueZat": 152517558245816,
+      "id": "sapling",
+      "monitored": true
+    },
+    {
+      "chainValue": 249714.3938197,
+      "chainValueZat": 24971439381970,
+      "id": "orchard",
+      "monitored": true
+    },
+    {
+      "chainValue": 129919.5,
+      "chainValueZat": 12991950000000,
+      "id": "lockbox",
+      "monitored": true
+    },
+    {
+      "chainValue": 34436.01988946,
+      "chainValueZat": 3443601988946,
+      "id": "ironwood",
+      "monitored": true
+    }
+  ],
+  "verificationprogress": 1.0
+}

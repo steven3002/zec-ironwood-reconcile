@@ -24,6 +24,7 @@ use std::path::Path;
 use crate::canonical;
 use crate::checks::{Check, CheckRegistry, accounting, activation, ids, structural};
 use crate::domain::height::{BlockHeight, HeightInterval};
+use crate::domain::network::Network;
 use crate::domain::pool::Pool;
 use crate::domain::pool_state::ReportedPoolState;
 use crate::domain::zatoshi::Zatoshi;
@@ -33,6 +34,7 @@ use crate::evidence::manifest::Manifest;
 use crate::evidence::pool_state_file;
 use crate::evidence::validation::{self, ValidationWarning};
 use crate::parse::block;
+use crate::reconcile::binding;
 use crate::reconcile::continuity::{self, ChainEndpoints};
 use crate::reconcile::interval::{AnchorBalances, IntervalOutcome, reconcile_interval};
 use crate::reconcile::ledger::BlockLedger;
@@ -91,15 +93,36 @@ pub fn reconcile_with_manifest(
     let anchor_block = read_anchor_block(bundle_root, manifest)?;
     let anchor_state = read_pool_state(bundle_root, layout::ANCHOR_VALUE_POOLS)?;
 
+    // Every later balance is derived from the anchor's, so the record stating them must be
+    // shown to describe the anchor block rather than merely to sit beside it.
+    if let Some(computed) = anchor_block.as_deref() {
+        binding::check_pool_state_describes_block(
+            layout::ANCHOR_VALUE_POOLS,
+            manifest.interval.anchor_height,
+            anchor_state.height,
+            &anchor_state.block_hash,
+            computed,
+        )?;
+    }
+
     let mut ledgers = Vec::with_capacity(interval.block_count() as usize);
     let mut reported: BTreeMap<BlockHeight, ReportedPoolState> = BTreeMap::new();
 
     for height in interval.heights() {
         let hex = read_text(bundle_root, &layout::block(height))?;
         let parsed = block::parse_block_hex(&hex, network, height)?;
-        ledgers.push(BlockLedger::from_parsed(&parsed)?);
 
-        let state = read_pool_state(bundle_root, &layout::block_value_pools(height))?;
+        let pools_path = layout::block_value_pools(height);
+        let state = read_pool_state(bundle_root, &pools_path)?;
+        binding::check_pool_state_describes_block(
+            &pools_path,
+            height,
+            state.height,
+            &state.block_hash,
+            &parsed.block_hash,
+        )?;
+
+        ledgers.push(BlockLedger::from_parsed(&parsed)?);
         reported.insert(height, state.pools);
     }
 
@@ -150,15 +173,16 @@ pub fn reconcile_with_manifest(
     );
     activation::evaluate(
         &outcome,
+        &ledgers,
         network,
         Some(manifest.activation.expected_height.get()),
+        pre_activation_ironwood(manifest, network, &anchor_state, &reported),
         &mut registry,
     );
     accounting::evaluate(
         &outcome,
         reported_end_orchard,
         reported_end_ironwood,
-        &manifest.end.tracking,
         &mut registry,
     );
     registry.record(Check::pass(ids::CANONICAL_REPORT_GENERATED));
@@ -180,6 +204,34 @@ pub fn reconcile_with_manifest(
         report_hash,
         outcome,
         warnings,
+    })
+}
+
+/// Locates what the bundle records about Ironwood at the block before activation.
+///
+/// A bundle establishes that height either as its anchor or as a height inside its interval.
+/// Both are equally good evidence about the same block, so both are offered to the check;
+/// which one a given bundle happens to carry is a fact about how it was captured, not about
+/// the chain.
+fn pre_activation_ironwood(
+    manifest: &Manifest,
+    network: Network,
+    anchor_state: &pool_state_file::CapturedBlockState,
+    reported: &BTreeMap<BlockHeight, ReportedPoolState>,
+) -> Option<activation::PreActivationIronwood> {
+    let boundary = network
+        .ironwood_activation_height()
+        .checked_previous()
+        .ok()?;
+
+    let pools = if boundary == manifest.interval.anchor_height {
+        &anchor_state.pools
+    } else {
+        reported.get(&boundary)?
+    };
+
+    Some(activation::PreActivationIronwood {
+        balance: pools.balance(Pool::Ironwood),
     })
 }
 
@@ -257,10 +309,7 @@ fn read_anchor_block(
 
 fn read_text(bundle_root: &Path, relative: &str) -> Result<String, ReconcileError> {
     let path = layout::resolve(bundle_root, relative)?;
-    std::fs::read_to_string(&path).map_err(|source| ReconcileError::Filesystem {
-        path: path.display().to_string(),
-        source,
-    })
+    std::fs::read_to_string(&path).map_err(|source| evidence_read_error(relative, &path, source))
 }
 
 fn read_pool_state(
@@ -268,11 +317,28 @@ fn read_pool_state(
     relative: &str,
 ) -> Result<pool_state_file::CapturedBlockState, ReconcileError> {
     let path = layout::resolve(bundle_root, relative)?;
-    let bytes = std::fs::read(&path).map_err(|source| ReconcileError::Filesystem {
-        path: path.display().to_string(),
-        source,
-    })?;
+    let bytes =
+        std::fs::read(&path).map_err(|source| evidence_read_error(relative, &path, source))?;
     pool_state_file::parse(&bytes)
+}
+
+/// Distinguishes evidence a bundle does not contain from a fault reading a file it does.
+///
+/// A bundle whose manifest indexes an interval but omits one of its heights is unusable
+/// evidence, not a filesystem fault. Reporting it as the latter gives a caller an exit code
+/// describing this machine rather than the bundle, and a message naming an absolute path
+/// rather than the missing height.
+fn evidence_read_error(relative: &str, path: &Path, source: std::io::Error) -> ReconcileError {
+    if source.kind() == std::io::ErrorKind::NotFound {
+        ReconcileError::MissingFile {
+            path: relative.to_owned(),
+        }
+    } else {
+        ReconcileError::Filesystem {
+            path: path.display().to_string(),
+            source,
+        }
+    }
 }
 
 /// Writes the three report artifacts into a directory.

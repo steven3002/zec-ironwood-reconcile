@@ -687,12 +687,15 @@ fn pools_are_read_by_identifier_regardless_of_order_or_additions() {
 }
 
 #[test]
-fn an_untracked_pool_is_recorded_and_raises_an_advisory_without_failing() {
+fn an_empty_pool_is_recorded_and_raises_an_advisory_without_failing() {
+    // The node's `monitored` flag is stored because it is part of the response, but nothing
+    // infers from it: Zebra computes it as `chainValueZat != 0`. The advisory is raised by
+    // the balance being zero, which is the fact a reader needs.
     let (_node, _capture, outcome) = capture_with(Script {
         ironwood_untracked: true,
         ..Script::default()
     });
-    let summary = outcome.expect("an untracked pool is a caveat, not a capture failure");
+    let summary = outcome.expect("an empty pool is a caveat, not a capture failure");
 
     assert_eq!(
         summary.manifest.end.tracking.ironwood_tracked_by_node,
@@ -702,7 +705,7 @@ fn an_untracked_pool_is_recorded_and_raises_an_advisory_without_failing() {
         summary
             .advisories
             .iter()
-            .any(|advisory| advisory.id == "pool_not_tracked_by_node"),
+            .any(|advisory| advisory.id == "pool_balance_is_zero"),
         "advisories: {:?}",
         summary.advisories
     );

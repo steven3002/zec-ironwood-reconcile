@@ -19,7 +19,7 @@ use crate::domain::zatoshi::Zatoshi;
 use crate::reconcile::interval::Agreement;
 
 /// Report schema version understood by this build.
-pub const REPORT_SCHEMA_VERSION: &str = "1.1.0";
+pub const REPORT_SCHEMA_VERSION: &str = "1.2.0";
 
 /// The boundary of what this tool's output may be cited for.
 ///
@@ -122,7 +122,19 @@ pub struct PerHeightSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Report {
     pub report_schema_version: String,
+    /// Version of the tool that **captured** the bundle, as its manifest states.
+    ///
+    /// This is a claim by whoever produced the bundle, and it describes the capture rather
+    /// than the reconciliation. It is not the build that decided any verdict below.
     pub tool_version: String,
+    /// Version of the build that **reconciled** the bundle and produced this report.
+    ///
+    /// Check semantics decide every verdict and therefore the report hash, so two builds can
+    /// reconcile one bundle to two different hashes. Without this field a verifier comparing
+    /// hashes cannot tell whether a mismatch means the evidence differs or merely that the
+    /// builds do — and the only version the report carried was one the bundle's own author
+    /// supplied. Compiled in, so it cannot be set by input.
+    pub reconciled_by_version: String,
     pub bundle_id: String,
     pub network: Network,
     pub interval: ReportInterval,

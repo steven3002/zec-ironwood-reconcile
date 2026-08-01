@@ -81,14 +81,14 @@ impl ReportedPoolState {
         self.monitored.get(&pool).copied()
     }
 
-    /// Reconstructed pools the node explicitly reported it is not tracking.
+    /// Reconstructed pools the node reported as holding nothing.
     ///
     /// Their balances will read as zero. That zero is a placeholder, so a comparison
     /// against it corroborates nothing and must not be presented as agreement.
-    pub fn untracked_reconstructed_pools(&self) -> Vec<Pool> {
+    pub fn empty_reconstructed_pools(&self) -> Vec<Pool> {
         Pool::RECONSTRUCTED
             .into_iter()
-            .filter(|pool| self.monitored(*pool) == Some(false))
+            .filter(|pool| self.balance(*pool) == Some(Zatoshi::ZERO))
             .collect()
     }
 

@@ -29,9 +29,11 @@
 //! omit them entirely while otherwise appearing healthy. An absent value stays absent; it
 //! never becomes zero.
 //!
-//! The node's `monitored` flag is preserved for the same reason. Zebra reports a balance of
-//! zero for a pool it is not yet tracking, and only sets `monitored` once the pool first
-//! holds value, so the flag is the difference between a measured zero and a placeholder.
+//! The node's `monitored` flag is preserved because it is part of the response, not because
+//! anything infers from it. Zebra builds every pool entry through one constructor that sets
+//! `monitored: amount.zatoshis() != 0`, so the flag restates whether the balance is non-zero
+//! and is not a statement about which pools the node tracks. Nothing in this crate may treat
+//! a `false` there as marking a balance unmeasured.
 
 use serde::Deserialize;
 
@@ -371,12 +373,12 @@ mod tests {
     }
 
     #[test]
-    fn untracked_reconstructed_pools_are_listed() {
-        // At this height neither Orchard nor Ironwood has been activated, so both report a
-        // placeholder zero.
+    fn empty_reconstructed_pools_are_listed() {
+        // At this height neither Orchard nor Ironwood has been activated, so both hold
+        // nothing.
         let state = parse(&recorded("getblock-verbose-280769.json")).unwrap();
         assert_eq!(
-            state.pools.untracked_reconstructed_pools(),
+            state.pools.empty_reconstructed_pools(),
             vec![Pool::Orchard, Pool::Ironwood]
         );
     }
@@ -463,8 +465,8 @@ mod tests {
 
     #[test]
     fn a_node_that_omits_the_flag_reports_no_opinion() {
-        // The flag is absent from older responses. That is not the same as a reported
-        // `false`, and must not be read as one.
+        // The flag is absent from older responses. Nothing reads it as a tracking signal,
+        // but its absence must still be distinguishable from a reported `false`.
         let without = r#"{
             "hash": "00",
             "height": 1,
@@ -472,7 +474,6 @@ mod tests {
         }"#;
         let state = parse(without.as_bytes()).unwrap();
         assert_eq!(state.pools.monitored(Pool::Orchard), None);
-        assert!(state.pools.untracked_reconstructed_pools().is_empty());
     }
 
     #[test]

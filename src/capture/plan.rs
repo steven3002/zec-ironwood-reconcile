@@ -105,7 +105,8 @@ pub fn preflight(
     let anchor_json = client.get_block_object(anchor_height)?;
     let anchor = parse_pool_state(anchor_height, &anchor_json)?;
 
-    let advisories = guard::advisories(request.network, &anchor);
+    let mut advisories = guard::interval_advisories(request.network, request.interval);
+    advisories.extend(guard::advisories(&anchor));
 
     Ok(Preflight {
         node: node.value,

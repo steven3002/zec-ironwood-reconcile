@@ -49,6 +49,7 @@ mod tests {
         Report {
             report_schema_version: "1.0.0".to_owned(),
             tool_version: "0.1.0".to_owned(),
+            reconciled_by_version: "0.1.0".to_owned(),
             bundle_id: "mainnet-1-2".to_owned(),
             network: Network::Mainnet,
             interval: ReportInterval {

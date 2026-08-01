@@ -57,6 +57,7 @@ impl From<&ReconcileError> for ExitCode {
 
             ReconcileError::HashMismatch { .. }
             | ReconcileError::MissingFile { .. }
+            | ReconcileError::EvidenceInconsistent { .. }
             | ReconcileError::ArchiveRejected { .. } => Self::EvidenceUnavailable,
 
             ReconcileError::UnsupportedTransaction { .. }

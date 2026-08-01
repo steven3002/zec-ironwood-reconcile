@@ -4,6 +4,7 @@
 //! reaches the network, which is what allows `reconcile` and offline `verify` to execute
 //! the identical code path over the identical bytes.
 
+pub mod binding;
 pub mod continuity;
 pub mod interval;
 pub mod ledger;

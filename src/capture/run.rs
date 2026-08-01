@@ -136,7 +136,7 @@ pub fn run(
         Encoding::Json,
     )?;
 
-    let advisories = collect_advisories(&preflight, request.network, &end_state);
+    let advisories = collect_advisories(&preflight, &end_state);
     write_metadata(&mut writer, &preflight, request)?;
 
     let files_written = writer.written_count();
@@ -239,13 +239,9 @@ fn capture_interval(
     })
 }
 
-fn collect_advisories(
-    preflight: &Preflight,
-    network: Network,
-    end_state: &CapturedBlockState,
-) -> Vec<Advisory> {
+fn collect_advisories(preflight: &Preflight, end_state: &CapturedBlockState) -> Vec<Advisory> {
     let mut advisories = preflight.advisories.clone();
-    for advisory in guard::advisories(network, end_state) {
+    for advisory in guard::advisories(end_state) {
         if !advisories.iter().any(|existing| existing.id == advisory.id) {
             advisories.push(advisory);
         }

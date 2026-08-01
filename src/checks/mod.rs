@@ -49,7 +49,7 @@ pub mod ids {
     pub const IRONWOOD_END_BALANCE_MATCHES: &str = "ironwood_end_balance_matches";
     /// Whether the node's end balances were measurements rather than placeholders.
     ///
-    /// A node reports a balance of zero for a pool it is not tracking, so a reconstruction
+    /// A node may serve empty pool data during a database upgrade, so a reconstruction
     /// can "agree" with a figure the node never claimed to have measured. Agreement of that
     /// kind corroborates nothing, and this check is what stops it being presented as though
     /// it did.

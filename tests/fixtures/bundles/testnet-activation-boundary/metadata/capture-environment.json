@@ -1,0 +1,17 @@
+{
+  "tool_name": "zec-ironwood-reconcile",
+  "tool_version": "0.1.0",
+  "node_implementation": "zebra",
+  "node_version": "6.2.3",
+  "node_protocol_version": 170160,
+  "network": "testnet",
+  "tip_height_at_capture": 4229403,
+  "anchor_height": 4133998,
+  "start_height": 4133999,
+  "end_height": 4134010,
+  "block_count": 12,
+  "tip_distance_required": 100,
+  "captured_at": "2026-08-01T04:34:13.859984371Z",
+  "build_target": "x86_64-linux",
+  "rpc_url_recorded": false
+}

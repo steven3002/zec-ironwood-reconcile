@@ -81,9 +81,11 @@ An absent balance stays absent. Omission is meaningful: a node undergoing a data
 upgrade serves empty pool values at arbitrary heights while otherwise appearing healthy,
 and treating that as zero would yield a confident and meaningless reconciliation.
 
-**`monitored`** states whether the node is tracking a pool at that height. A node reports
-`chainValueZat: 0` for a pool it is not tracking, so without this flag a placeholder cannot
-be told apart from a measured zero — and agreement with a placeholder is not corroboration.
+**`monitored`** is stored because it is part of the response, not because anything is
+inferred from it. Zebra builds every pool entry through a single constructor that sets
+`monitored: amount.zatoshis() != 0`, so the flag restates whether the balance is non-zero and
+says nothing about which pools the node tracks. A reader should not treat `false` as marking
+a balance unmeasured, and this tool does not.
 
 Only the pools files are projected. A block's consensus bytes are stored exactly as served.
 
@@ -161,7 +163,7 @@ same interval and are not inputs to any calculation. Reproducibility applies to 
 | `encoding` | One of `raw-block-hex`, `json`, `text` |
 | `files` | Sorted by `path`; no duplicates |
 | `rpc_url_redacted` | The RPC endpoint is never recorded, only that it was withheld |
-| `end.tracking.*` | `true`, `false`, or `null` when the node published no opinion |
+| `end.tracking.*` | The node's `monitored` value at the end height, or `null` when it published none. The field names are misnomers held for schema compatibility: on Zebra this is `chainValueZat != 0`, not a statement about tracking. Nothing in the reconciliation reads it |
 
 ### Why monetary values are strings
 
