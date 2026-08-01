@@ -1,4 +1,4 @@
-//! `capture` — collect a bounded interval from a node.
+//! `capture`, collect a bounded interval from a node.
 //!
 //! The only command that opens a socket. It turns command-line arguments into a transport
 //! and a request, runs the capture, and renders the outcome; every decision about whether
@@ -87,8 +87,8 @@ pub fn capture(args: &CaptureArgs, quiet: bool) -> Result<CaptureSummary, Reconc
 /// Refuses to replace an archive that already exists unless asked to.
 ///
 /// A bundle directory already refuses to be written over without `--overwrite`. The archive
-/// is the artifact actually published alongside its digest, so silently replacing one — and
-/// the `.sha256` beside it — is the more damaging of the two omissions: a third party
+/// is the artifact actually published alongside its digest, so silently replacing one, and
+/// the `.sha256` beside it, is the more damaging of the two omissions: a third party
 /// holding the old digest is left unable to verify anything, with nothing to say why.
 fn refuse_existing_archive(path: &Path, overwrite: bool) -> Result<(), ReconcileError> {
     if overwrite || !path.exists() {

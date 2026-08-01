@@ -139,7 +139,7 @@ pub struct AnchorState {
 /// and says nothing about tracking.
 ///
 /// The value is recorded because it is part of the response, not because anything depends on
-/// it. Nothing in the reconciliation reads it, and no check may be derived from it — treating
+/// it. Nothing in the reconciliation reads it, and no check may be derived from it, treating
 /// it as a tracking signal downgrades every correct comparison against a legitimately empty
 /// pool, which is every capture of the activation boundary.
 ///

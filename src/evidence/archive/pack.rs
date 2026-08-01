@@ -1,8 +1,8 @@
 //! Archive creation.
 //!
 //! Packing is deterministic: entries are emitted in sorted path order and every piece of
-//! filesystem metadata that varies between machines — modification time, ownership,
-//! permission bits beyond a fixed mode, user and group names — is normalised away.
+//! filesystem metadata that varies between machines, modification time, ownership,
+//! permission bits beyond a fixed mode, user and group names, is normalised away.
 //!
 //! Two operators who pack the same bundle therefore produce byte-identical archives with
 //! identical digests. That is not required for verification, which works from the manifest,

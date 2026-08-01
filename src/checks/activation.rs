@@ -14,8 +14,8 @@ use crate::reconcile::ledger::BlockLedger;
 
 /// What a bundle records about the Ironwood pool at the last block before activation.
 ///
-/// A bundle can establish this in either of two ways — the block before activation may be
-/// the interval's anchor, or it may be a height within the interval — and the check that
+/// A bundle can establish this in either of two ways, the block before activation may be
+/// the interval's anchor, or it may be a height within the interval, and the check that
 /// consumes this does not need to care which. Constructing it at the call site keeps the
 /// checks layer free of any knowledge of bundle layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,7 +68,7 @@ fn check_activation_context(network: Network, declared: Option<u32>, registry: &
 /// a height inside the interval, the same claim is being made about the same block. Tying
 /// the check to the anchor alone made it mutually exclusive with
 /// [`check_no_ironwood_before_activation`], which needs a pre-activation height *inside* the
-/// interval — so no single bundle could ever affirm both halves of the boundary claim.
+/// interval, so no single bundle could ever affirm both halves of the boundary claim.
 ///
 /// This is a consistency check rather than a discovery. ZIP 258 defines the balance to be
 /// zero before activation, so a node that disagreed would be the finding; agreement is the

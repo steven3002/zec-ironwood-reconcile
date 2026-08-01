@@ -21,8 +21,8 @@
 //!
 //! An earlier version of this crate read it as a tracking signal and downgraded comparisons
 //! against pools it reported as unmonitored. That is wrong in exactly the case that matters
-//! most: a pool legitimately holding zero — the Ironwood pool at every height between
-//! activation and its first inflow — would have had every correct comparison marked as
+//! most: a pool legitimately holding zero, the Ironwood pool at every height between
+//! activation and its first inflow, would have had every correct comparison marked as
 //! uncorroborated.
 
 use std::collections::BTreeMap;

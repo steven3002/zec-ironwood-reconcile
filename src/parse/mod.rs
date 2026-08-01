@@ -2,8 +2,8 @@
 //!
 //! Deserialization is delegated to `zcash_primitives`, a codebase independent of the node
 //! whose figures this tool cross-checks. The accounting interpretation of what those bytes
-//! mean — the sign convention, the per-transaction deltas, the treatment of absent bundles
-//! — is implemented here.
+//! mean, the sign convention, the per-transaction deltas, the treatment of absent bundles
+//!, is implemented here.
 //!
 //! Nothing in this module performs I/O or reaches the network. It is given bytes and
 //! returns deltas, which is what allows the same code path to serve both `reconcile` and

@@ -2,7 +2,7 @@
 //!
 //! The architecture's central rule is that reconciliation and everything downstream of it
 //! cannot reach the network layer. That is what makes offline verification structural
-//! rather than a feature somebody has to remember to preserve — but only while the rule
+//! rather than a feature somebody has to remember to preserve, but only while the rule
 //! actually holds, and a rule enforced by review holds until the review that misses it.
 //!
 //! These tests read the source and fail on a violation. They are deliberately blunt: a
@@ -137,7 +137,7 @@ fn the_offline_verification_path_cannot_reach_the_network_layer() {
     // Every command except `capture` runs offline, and `verify` reaches the accounting path
     // by calling straight into `commands/reconcile.rs`. Naming the one exception rather than
     // listing the members means a command added later is covered by default instead of
-    // escaping the rule — which is how `commands/reconcile.rs` came to sit on the
+    // escaping the rule, which is how `commands/reconcile.rs` came to sit on the
     // verification path unscanned while only `commands/verify.rs` was listed.
     let mut files: Vec<PathBuf> = rust_files_under(&source_root().join("commands"))
         .into_iter()

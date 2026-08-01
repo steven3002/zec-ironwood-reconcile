@@ -12,7 +12,7 @@ use crate::domain::network::Network;
 ///
 /// **The value is a conservative choice, not a derived one.** No specification states a
 /// depth beyond which a Zcash reorganisation cannot occur, and no source for one was found.
-/// At the 75-second target spacing, 100 blocks is roughly two hours of chain — far beyond
+/// At the 75-second target spacing, 100 blocks is roughly two hours of chain, far beyond
 /// any reorganisation depth observed in practice, and cheap, since it only delays a capture.
 /// Anyone who has a sourced figure should use it via `--tip-distance` rather than infer one
 /// from this default.
@@ -127,7 +127,8 @@ pub struct VerifyArgs {
 
 #[derive(Debug, Args)]
 pub struct InspectArgs {
-    /// Path to an evidence bundle directory or archive.
+    /// Path to an evidence bundle directory. An archive must be extracted first, or read
+    /// with `verify`, which unpacks one into a temporary directory of its own.
     pub bundle: PathBuf,
 }
 

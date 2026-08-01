@@ -1,4 +1,4 @@
-//! `verify` — offline reproduction of a published result.
+//! `verify`, offline reproduction of a published result.
 //!
 //! This is the command a third party actually runs, and the one the project's credibility
 //! rests on. It requires no node, no internet access, no database, no hosted service, no

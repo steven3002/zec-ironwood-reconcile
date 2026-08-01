@@ -2,7 +2,7 @@
 //!
 //! Every other test in this suite works on bytes this project constructed. These work on a
 //! bundle captured from a live Zebra node covering the heights at which value first entered
-//! the Ironwood pool on testnet — so they exercise the one thing synthetic fixtures cannot:
+//! the Ironwood pool on testnet, so they exercise the one thing synthetic fixtures cannot:
 //! that extraction from a real version 6 transaction's Ironwood bundle produces the value
 //! the network itself reports.
 //!
@@ -245,7 +245,7 @@ fn altering_one_byte_of_a_block_is_refused_before_any_accounting() {
 #[test]
 fn a_manifest_that_misstates_its_own_anchor_is_reported() {
     // The manifest is authored by whoever produced the bundle. The arithmetic uses the
-    // evidence, so a misstatement changes no figure — but it is still surfaced rather than
+    // evidence, so a misstatement changes no figure, but it is still surfaced rather than
     // passed over.
     let (_dir, root) = scratch_copy();
 
@@ -430,11 +430,70 @@ fn a_pool_state_file_describing_a_different_block_is_refused() {
     assert_eq!(ExitCode::from(&error), ExitCode::EvidenceUnavailable);
 }
 
+/// Consensus header word of the fixture's first transaction: the overwintered bit, then
+/// version 6.
+const VERSION_6_HEADER_WORD: u32 = 0x8000_0006;
+
+/// The same word with the version raised to 7, which no transaction format defines.
+///
+/// The version group identifier that follows is left untouched, so the pair the reader
+/// matches on describes a version it does not implement rather than a malformed field.
+const UNRECOGNISED_VERSION_HEADER_WORD: u32 = 0x8000_0007;
+
+/// Offset of the first transaction's version header within a captured block.
+///
+/// A block is a fixed 140-byte header, version, three 32-byte hashes, `nTime`, `nBits` and
+/// a 32-byte nonce, followed by the length-prefixed Equihash solution, then a compact-size
+/// transaction count. The `(200, 9)` solution these networks use is 1,344 bytes and carries
+/// a three-byte length prefix; the fixture holds one transaction, so its count occupies a
+/// single byte.
+///
+/// The caller asserts that the word found here is the version it expects before altering it,
+/// so an offset that ever stopped being right fails the test rather than mutating an
+/// arbitrary part of the block.
+const FIRST_TRANSACTION_OFFSET: usize = (4 + 32 + 32 + 32 + 4 + 4 + 32) + 3 + 1344 + 1;
+
+#[test]
+fn a_transaction_declaring_an_unrecognised_version_is_refused() {
+    // Closes the last of the fixture scenarios. An unknown version is rejected during
+    // deserialization, but reaching that path needs a well-formed block around it, a valid
+    // header, Equihash solution and coinbase, which cannot be constructed without real
+    // chain data. Mutating a captured block's version field is what makes it reachable.
+    let (_dir, root) = scratch_copy();
+    let block_path = root.join(format!("blocks/{FIXTURE_HEIGHT}.hex"));
+
+    let mut block = hex::decode(std::fs::read_to_string(&block_path).unwrap().trim()).unwrap();
+    let version_field = FIRST_TRANSACTION_OFFSET..FIRST_TRANSACTION_OFFSET + 4;
+    assert_eq!(
+        u32::from_le_bytes(block[version_field.clone()].try_into().unwrap()),
+        VERSION_6_HEADER_WORD,
+        "the first transaction is not where this test expects it, so the mutation below \
+         would alter unrelated bytes"
+    );
+
+    // The control. Resealing rewrites the manifest, so without this a refusal after the
+    // mutation could as easily be an artifact of copying and resealing the bundle.
+    reseal(&root);
+    reconcile::reconcile(&root).expect("the unmutated bundle must still reconcile");
+
+    block[version_field].copy_from_slice(&UNRECOGNISED_VERSION_HEADER_WORD.to_le_bytes());
+    std::fs::write(&block_path, hex::encode(&block)).unwrap();
+    reseal(&root);
+
+    let error = reconcile::reconcile(&root).unwrap_err();
+    assert!(
+        matches!(&error, ReconcileError::TransactionParse { height, .. } if *height == FIXTURE_HEIGHT),
+        "expected the offending height to be named, got {error:?}"
+    );
+    assert_eq!(ExitCode::from(&error), ExitCode::UnsupportedTransaction);
+    assert_eq!(ExitCode::from(&error).code(), 5);
+}
+
 #[test]
 fn the_report_records_the_build_that_reconciled_it_not_the_one_named_by_the_bundle() {
     // Check semantics decide every verdict and therefore the report hash, so two builds can
     // reconcile one bundle to two different hashes. The only version the report used to
-    // carry came from the manifest — a field the bundle's author writes — so a verifier
+    // carry came from the manifest, a field the bundle's author writes, so a verifier
     // comparing hashes could not tell a difference in evidence from a difference in builds.
     let (_dir, root) = scratch_copy();
 

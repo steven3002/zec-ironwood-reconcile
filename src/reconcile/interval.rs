@@ -126,7 +126,7 @@ impl HeightOutcome {
 /// These are two **separate observations**, not a balance, and no relationship between them
 /// is asserted.
 ///
-/// The intuitive invariant — that Ironwood cannot receive more than Orchard released — is
+/// The intuitive invariant, that Ironwood cannot receive more than Orchard released, is
 /// **false**, and the first real Ironwood block on testnet demonstrates it. At height
 /// 4,134,683 the pool gained 125,000,000 zatoshi while Orchard released nothing: the block
 /// held a single coinbase transaction distributing the block subsidy across the transparent,

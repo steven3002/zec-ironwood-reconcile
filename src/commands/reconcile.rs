@@ -1,4 +1,4 @@
-//! `reconcile` — reconstruct pool changes from an evidence bundle.
+//! `reconcile`, reconstruct pool changes from an evidence bundle.
 //!
 //! This is the accounting path, and `verify` runs exactly the same function over an
 //! extracted archive. There is deliberately no second implementation: if reconciliation and
@@ -8,7 +8,7 @@
 //!
 //! Reconciliation opens the evidence read-only and returns the report to its caller. A
 //! bundle's digests therefore cannot be disturbed by reconciling it, and reconciling the
-//! same bundle twice — or a hundred times, in the course of verifying it — leaves it
+//! same bundle twice, or a hundred times, in the course of verifying it, leaves it
 //! byte-identical.
 //!
 //! # Order
@@ -237,8 +237,8 @@ fn pre_activation_ironwood(
 
 /// Confirms the manifest's summary figures are the ones the evidence records.
 ///
-/// Nothing downstream depends on the manifest's balances — the arithmetic uses the evidence
-/// directly — so this check exists to surface a disagreement rather than to guard against
+/// Nothing downstream depends on the manifest's balances, the arithmetic uses the evidence
+/// directly, so this check exists to surface a disagreement rather than to guard against
 /// one. A manifest that misstates its own bundle is worth knowing about even when it changes
 /// no number, because it is the part of a bundle a reader is most likely to skim.
 fn record_manifest_agreement(
@@ -424,7 +424,7 @@ pub fn render(reconciliation: &Reconciliation) -> String {
         for check in notable {
             let _ = writeln!(
                 out,
-                "  [{:?}] {} — {}",
+                "  [{:?}] {}, {}",
                 check.status,
                 check.id,
                 check.details.as_deref().unwrap_or("no detail recorded")

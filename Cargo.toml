@@ -6,6 +6,7 @@ rust-version = "1.96"
 license = "MIT OR Apache-2.0"
 description = "Reconstructs Orchard and Ironwood chain value-pool changes over a bounded Zcash block interval from transaction-level public data, and produces offline-verifiable evidence."
 readme = "README.md"
+repository = "https://github.com/steven3002/zec-ironwood-reconcile"
 keywords = ["zcash", "orchard", "ironwood", "reconciliation", "audit"]
 categories = ["command-line-utilities", "cryptography::cryptocurrencies"]
 

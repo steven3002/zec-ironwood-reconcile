@@ -11,7 +11,7 @@
 //! canonicalization serializes JSON numbers through IEEE-754 doubles, which lose integer
 //! precision above 2^53 − 1 = 9,007,199,254,740,991. A valid zatoshi amount is bounded by
 //! [`MAX_MONEY`] = 2,100,000,000,000,000 and stays below that, but only by a factor of
-//! about four — and neither an `i128` accumulator nor an untrusted input is bounded by
+//! about four, and neither an `i128` accumulator nor an untrusted input is bounded by
 //! `MAX_MONEY` at all. A numeric encoding would round such a value silently instead of
 //! rejecting it; a string encoding cannot.
 
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn round_trips_values_above_the_double_precision_limit() {
         // 2^53 + 1 is not representable as an f64; a numeric encoding would corrupt it.
-        // This is above MAX_MONEY, so no valid amount reaches it — the point is that the
+        // This is above MAX_MONEY, so no valid amount reaches it, the point is that the
         // string encoding is sound for any i64, including one an untrusted bundle supplies.
         let value = Zatoshi::from_raw(9_007_199_254_740_993);
         let json = serde_json::to_string(&value).unwrap();

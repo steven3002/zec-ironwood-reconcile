@@ -1,7 +1,7 @@
 //! Binds each captured pool-state record to the block it claims to describe.
 //!
 //! A bundle stores two files per height: the block's consensus bytes and the pool figures
-//! the node reported for it. Nothing in the file names ties one to the other — a bundle in
+//! the node reported for it. Nothing in the file names ties one to the other, a bundle in
 //! which the pool files have been shuffled, or in which one belongs to a different block
 //! entirely, is indistinguishable from an honest one by digest alone, because resealing a
 //! manifest is something whoever produced the bundle can always do.

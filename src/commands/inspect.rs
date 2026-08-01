@@ -1,4 +1,4 @@
-//! `inspect` — bundle metadata without reconciliation.
+//! `inspect`, bundle metadata without reconciliation.
 //!
 //! Deliberately cheap. It reads the manifest and reports what the bundle claims to be. It
 //! does not hash evidence files, parse blocks, or reconcile, so it stays fast on a large

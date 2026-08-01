@@ -4,7 +4,7 @@
 //!
 //! A `getblock` response mixes two kinds of field. Some describe the block: its hash, its
 //! height, the value each pool held after it. Others describe the moment it was asked for,
-//! `confirmations` being the clearest — it is the distance to the chain tip, so the same
+//! `confirmations` being the clearest, it is the distance to the chain tip, so the same
 //! block yields a different response every few minutes.
 //!
 //! Storing the response verbatim would make an evidence file a record of when a capture ran
@@ -118,8 +118,8 @@ pub fn parse(bytes: &[u8]) -> Result<CapturedBlockState, ReconcileError> {
 
 /// Reduces a node's `getblock` response to the fields that describe the block.
 ///
-/// The result is what a bundle stores. Keeping the projection explicit — an allow-list
-/// rather than a list of known-variable fields to remove — means a field introduced by a
+/// The result is what a bundle stores. Keeping the projection explicit, an allow-list
+/// rather than a list of known-variable fields to remove, means a field introduced by a
 /// future node release cannot silently make evidence unreproducible.
 ///
 /// An absent balance stays absent. Omission is meaningful, and the guard that refuses an
@@ -159,7 +159,7 @@ fn project_pool(entry: &serde_json::Value) -> serde_json::Value {
 /// Parses a captured response and requires it to carry every reconstructed pool balance.
 ///
 /// This is the guard against reconciling against absent values. A node serving empty pool
-/// data at arbitrary heights — documented Zebra behaviour during a database upgrade — would
+/// data at arbitrary heights, documented Zebra behaviour during a database upgrade, would
 /// otherwise produce a confident and meaningless result.
 pub fn parse_requiring_balances(bytes: &[u8]) -> Result<CapturedBlockState, ReconcileError> {
     let state = parse(bytes)?;

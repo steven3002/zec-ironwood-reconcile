@@ -105,7 +105,7 @@ pub fn parse_block(
 ///
 /// Delegated to the upgrade table in `zcash_protocol` rather than modelled here. An earlier
 /// version recognised only the NU6.3 boundary and reported every earlier height as NU6.2,
-/// which made any block before the upgrade unparseable — including the pre-activation
+/// which made any block before the upgrade unparseable, including the pre-activation
 /// intervals that are the only real chain data available while a testnet sync is in
 /// progress.
 ///

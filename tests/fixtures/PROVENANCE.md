@@ -43,7 +43,7 @@ bisection, and the flag flips exactly there.
 **What these do not show.** They are pre-activation testnet blocks. They pin *response
 shape*, not Ironwood behaviour, and cannot close Gate 1.
 
-### Block bytes — the activation boundary
+### Block bytes, the activation boundary
 
 `bundles/testnet-activation-boundary/` is a complete evidence bundle captured from a live
 **Zebra 6.2.3** node on **testnet**, on **2026-08-01**.
@@ -63,7 +63,7 @@ blocks above it, so:
 - `ironwood_anchor_zero` has the block before activation inside the interval.
 
 Before this fixture existed, every captured interval lay wholly on one side of the boundary
-and all three checks had only ever been observed reporting *not applicable* — which reads
+and all three checks had only ever been observed reporting *not applicable*, which reads
 like coverage in a summary and is none. `tests/activation_boundary.rs` pins each verdict.
 
 **The cross-check.** Zebra reports, for every height in the interval, an Orchard balance of
@@ -75,7 +75,7 @@ height on both axes.
 demonstrates the boundary *rules*, not Ironwood value movement. That is what
 `bundles/testnet-ironwood/` is for.
 
-### Block bytes — the Ironwood bundle
+### Block bytes, the Ironwood bundle
 
 `bundles/testnet-ironwood/` is a complete evidence bundle captured from a live **Zebra
 6.2.3** node on **testnet**, on **2026-08-01**.
@@ -144,7 +144,7 @@ reconstruction agrees.
 
 The golden report is a **regression guard, not evidence.** It proves that this build's
 canonical serialization has not changed. It says nothing about whether the figures inside it
-were derived from real chain data — they were not.
+were derived from real chain data, they were not.
 
 If the canonical serialization changes deliberately, regenerate both files **and** increment
 the report schema version. A silent change would mean a previously published report hash is
@@ -162,7 +162,7 @@ positive claim about value extraction.
 
 ---
 
-## Open dependency — closed
+## Open dependency, closed
 
 The parse layer's correctness against real Ironwood bundles was unproven until a captured
 fixture existed containing a version 6 transaction with an Ironwood bundle, cross-checked

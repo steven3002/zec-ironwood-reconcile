@@ -99,7 +99,7 @@ check_no_network wrong-hash    "${BINARY}" verify "${ARCHIVE}" --expected-report
 check_no_network inspect-dir   "${BINARY}" inspect "${VARIANTS}"
 
 # Positive control. `capture` must reach the network, and its failure to connect to an
-# endpoint that is not listening is expected — what matters is that it tried.
+# endpoint that is not listening is expected, what matters is that it tried.
 #
 # It doubles as proof that tracing sees more than this crate: every syscall it records is
 # issued from inside `ureq`, since no source file here names a socket operation.

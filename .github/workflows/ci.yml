@@ -61,3 +61,20 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check advisories licenses bans sources
+
+  auditable-build:
+    name: Release binary carries its dependency tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: rustup show
+
+      # `rust-audit-info` is the reader. The check builds twice on purpose, once without
+      # the tree as a control, so both tools are needed before the build runs.
+      - name: Install cargo-auditable and its reader
+        run: cargo install cargo-auditable rust-audit-info --locked
+
+      - name: Build and read back the embedded tree
+        run: ./scripts/check-auditable-build.sh

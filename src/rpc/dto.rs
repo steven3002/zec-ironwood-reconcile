@@ -46,7 +46,7 @@ pub struct ResponseError {
 /// A JSON-RPC 2.0 response.
 ///
 /// Zebra returns application errors with HTTP 200 and an `error` member, so the presence of
-/// `error` — not the HTTP status — is what distinguishes a failed call.
+/// `error`, not the HTTP status, is what distinguishes a failed call.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Response {
     #[serde(default)]

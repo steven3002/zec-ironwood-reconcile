@@ -513,7 +513,7 @@ mod tests {
 
     #[test]
     fn an_empty_pool_raises_an_advisory_rather_than_a_failure() {
-        // An empty pool is usable evidence — the comparison is simply against zero. It is
+        // An empty pool is usable evidence, the comparison is simply against zero. It is
         // worth saying so, but it is not a reason to refuse the capture.
         let mut state = pool_state(3_428_143);
         state.pools = state.pools.with_balance(Pool::Ironwood, Zatoshi::ZERO);

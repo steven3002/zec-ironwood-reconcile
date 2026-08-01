@@ -33,13 +33,13 @@ That is the entire claim. In particular the tool does **not**:
 
 ## Why it is not a wrapper around a node
 
-Transaction deserialization uses `zcash_primitives`. Everything downstream — the sign
+Transaction deserialization uses `zcash_primitives`. Everything downstream, the sign
 convention, the per-transaction deltas, the per-block aggregation, the interval
-accumulation, the anchor application, and every check — is implemented in this crate. No
+accumulation, the anchor application, and every check, is implemented in this crate. No
 Zebra crate appears in this binary's dependency graph.
 
 The claim worth making is narrower than "different codebase", and is checkable. Zebra does
-depend on `zcash_primitives` — at the same version this tool links — but it does not use it
+depend on `zcash_primitives`, at the same version this tool links, but it does not use it
 to read transactions or to compute pool balances. Zebra deserializes transactions with its
 own implementation in `zebra-chain`, and derives each pool's value balance from the fields
 that implementation produced. `zcash_primitives` is reached from Zebra only for transaction
@@ -49,8 +49,8 @@ independently written decoders.
 
 That independence is not total, and overstating it would be the wrong argument. The two
 share a large upstream graph, including the cryptographic crates `halo2_proofs`,
-`pasta_curves` and `reddsa`. Those crates do not decode a value balance — both sides read it
-as a little-endian `i64` in their own code — but a defect inside them would be invisible to
+`pasta_curves` and `reddsa`. Those crates do not decode a value balance, both sides read it
+as a little-endian `i64` in their own code, but a defect inside them would be invisible to
 both.
 
 Zebra's reported balances are the hypothesis under test, never an input to the calculation.
@@ -59,6 +59,19 @@ disagreement means one of them contains a defect, and locates where.
 
 See [`ACCOUNTING_MODEL.md`](ACCOUNTING_MODEL.md) for the arithmetic and its specification
 citations.
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [`ACCOUNTING_MODEL.md`](ACCOUNTING_MODEL.md) | The arithmetic contract: units, the sign convention with its ZIP citations, extraction, aggregation, the comparison against the node, and the activation-specific rules |
+| [`EVIDENCE_FORMAT.md`](EVIDENCE_FORMAT.md) | The bundle layout, manifest schema, hashing and validation, specified for an independent implementation |
+| [`LIMITATIONS.md`](LIMITATIONS.md) | The boundary of what the output may be cited for |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | The layering, the dependency rules and how they are enforced by test, and the dependency choices |
+| [`SECURITY.md`](SECURITY.md) | Reporting channel, the archive threat model, credential handling, and what the tool does not defend against |
+| [`REPRODUCING.md`](REPRODUCING.md) | How to verify a published bundle, and what a reproduction must report to count |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, test, lint and supply-chain commands, and the rules a change must respect |
+| [`CHANGELOG.md`](CHANGELOG.md) | Change history, including the manifest and report schema versions |
 
 ## Commands
 
@@ -95,7 +108,7 @@ at startup, and `--rpc-cookie-file` is only needed when the node uses a custom l
 `--archive` also writes `<archive>.sha256` in the format `sha256sum -c` accepts.
 
 Capture only reads. It calls `getinfo`, `getblockchaininfo`, and `getblock`, and nothing
-else — no wallet method, no key request, no broadcast, no node configuration change.
+else, no wallet method, no key request, no broadcast, no node configuration change.
 
 Before retrieving any block it confirms the node serves the requested network, that the
 node's own NU6.3 activation height matches the one compiled into this build, that the tip is
@@ -152,8 +165,8 @@ The pinned toolchain is declared in `rust-toolchain.toml`.
 
 No component is described as delivered until its tests pass against real chain data.
 
-The end-to-end path is demonstrated on testnet. At height 4,134,683 — where value first
-entered the Ironwood pool, 683 blocks after NU6.3 activated — the tool reconstructs an
+The end-to-end path is demonstrated on testnet. At height 4,134,683, where value first
+entered the Ironwood pool, 683 blocks after NU6.3 activated, the tool reconstructs an
 inflow of **125,000,000 zatoshi** from the block's own version 6 transaction bytes, which is
 the figure Zebra independently reports for that height. Every height in the interval agrees
 on both comparison axes, and the archive verifies offline to the same report hash. The

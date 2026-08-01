@@ -3,7 +3,7 @@
 //! The three activation checks are the ones that speak directly to what ZIP 258 specifies
 //! about the upgrade, and each is only meaningful on an interval positioned across the
 //! boundary. Every interval captured before this fixture existed sat wholly on one side of
-//! it, so all three had only ever been observed reporting *not applicable* — a state that
+//! it, so all three had only ever been observed reporting *not applicable*, a state that
 //! looks like coverage in a summary and is none.
 //!
 //! The fixture's provenance is recorded in `tests/fixtures/PROVENANCE.md`.

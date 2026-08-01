@@ -72,8 +72,8 @@ same block yields a different response every few minutes. Storing it would mean 
 operators capturing the same interval produced different bytes for the same block, and
 independent reproduction is the property this format exists to support.
 
-The projection is an allow-list — `hash`, `height`, and per pool `id`, `chainValueZat`,
-`valueDeltaZat`, `monitored` — so a field added by a future node release cannot silently
+The projection is an allow-list, `hash`, `height`, and per pool `id`, `chainValueZat`,
+`valueDeltaZat`, `monitored`, so a field added by a future node release cannot silently
 make evidence unreproducible. The floating-point `chainValue` and `valueDelta` fields are
 dropped as a lossy restatement of the zatoshi figures.
 
@@ -94,7 +94,7 @@ Only the pools files are projected. A block's consensus bytes are stored exactly
 The `rpc/` and `metadata/` files record the capturing node and session: tip height, sync
 progress, database size, capture time. These legitimately differ between two captures of the
 same interval and are not inputs to any calculation. Reproducibility applies to the evidence
-— `anchor/` and `blocks/` — and to the report derived from it.
+— `anchor/` and `blocks/`, and to the report derived from it.
 
 ---
 
@@ -107,7 +107,7 @@ same interval and are not inputs to any calculation. Reproducibility applies to 
   "created_at": "2026-07-29T14:30:00Z",
   "tool": {
     "name": "zec-ironwood-reconcile",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "git_commit": "abc123"
   },
   "source": {
@@ -187,7 +187,7 @@ preference.
 incrementally, so bundle size does not bound memory use.
 
 **Manifest digest.** SHA-256 over the manifest's **canonical serialization**, per
-[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) (JSON Canonicalization Scheme) — not
+[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) (JSON Canonicalization Scheme), not
 over the bytes of `manifest.json` as written. Reformatting or re-indenting the file
 therefore does not invalidate its digest, while any change of meaning does.
 
@@ -199,9 +199,9 @@ of field declaration order and of any map iteration order.
 ## 4. Validation
 
 A reader validates a bundle in two phases. Structural validation runs first and completely,
-because **the manifest is untrusted input** — a bundle can be authored by anyone.
+because **the manifest is untrusted input**, a bundle can be authored by anyone.
 
-### Phase 1 — structural, before any file is opened
+### Phase 1, structural, before any file is opened
 
 - `schema_version` major component matches the reader's supported version, otherwise the
   bundle is rejected rather than interpreted;
@@ -221,7 +221,7 @@ reader to open or overwrite a file outside the bundle directory.
 Directory traversal during validation never follows symbolic links, so a link cannot cause
 a reader to leave the bundle or loop.
 
-### Phase 2 — content
+### Phase 2, content
 
 For every listed file: it exists, its size matches `size_bytes`, and its SHA-256 matches
 `sha256`. All damaged files are reported, not merely the first.

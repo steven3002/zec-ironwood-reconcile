@@ -2,7 +2,7 @@
 //!
 //! Several places in this crate declare a set twice: once as the definition, and once as an
 //! array or a test helper enumerating it. Rust checks a `match` for exhaustiveness, so
-//! anything expressed as a match is safe. An array is not — adding a variant or a constant
+//! anything expressed as a match is safe. An array is not, adding a variant or a constant
 //! and forgetting the array compiles cleanly and passes every test, and the test that was
 //! supposed to cover the new member quietly covers nothing.
 //!
@@ -129,7 +129,7 @@ fn every_check_identifier_is_listed_in_the_presentation_order() {
 #[test]
 fn every_error_variant_is_covered_by_the_stable_identifier_test() {
     // `stable_id` is a match, so the compiler forces an identifier for every variant. What
-    // is not enforced is that the uniqueness test actually exercises them all — a variant
+    // is not enforced is that the uniqueness test actually exercises them all, a variant
     // absent from `every_variant()` could share an identifier with another and nothing
     // would notice.
     let text = source("src/error.rs");
@@ -181,7 +181,7 @@ fn every_pool_variant_is_listed_in_all() {
 #[test]
 fn the_generated_path_list_names_only_real_layout_constants() {
     // Under-listing here produces a spurious "unlisted file" warning rather than a false
-    // pass, so it is the mildest member of this family — but a path named here that no
+    // pass, so it is the mildest member of this family, but a path named here that no
     // longer exists would silently stop suppressing anything.
     use zec_ironwood_reconcile::evidence::layout;
 
@@ -194,6 +194,44 @@ fn the_generated_path_list_names_only_real_layout_constants() {
             "GENERATED_PATHS names {path:?}, which is not declared as a layout constant"
         );
     }
+}
+
+/// Text with every run of whitespace collapsed to a single space.
+///
+/// The published limitations are compared after this, so a document may wrap them across
+/// lines to stay readable while still being required to carry the same words.
+fn unwrapped(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<&str>>().join(" ")
+}
+
+#[test]
+fn the_published_limitations_match_the_ones_every_report_carries() {
+    // `LIMITATIONS.md` states that a report and the document cannot disagree. The strings
+    // are compiled into the binary, so the document is the copy that can drift.
+    use zec_ironwood_reconcile::report::schema::LIMITATIONS;
+
+    let published = unwrapped(&source("LIMITATIONS.md"));
+
+    let missing: Vec<&str> = LIMITATIONS
+        .into_iter()
+        .filter(|limitation| !published.contains(&unwrapped(limitation)))
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "LIMITATIONS.md does not carry every limitation a report states, so the two disagree \
+         about what the output may be cited for: {missing:?}"
+    );
+}
+
+#[test]
+fn the_limitation_comparison_would_notice_a_changed_word() {
+    // Without this, a comparison that silently matched anything would make the test above
+    // vacuous, the failure mode the rest of this file exists to catch.
+    let published = unwrapped(&source("LIMITATIONS.md"));
+
+    assert!(published.contains(&unwrapped("Does not verify zero-knowledge proofs.")));
+    assert!(!published.contains(&unwrapped("Does not verify zero-knowledge proofs at all.")));
 }
 
 #[test]

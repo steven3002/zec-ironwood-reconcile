@@ -50,7 +50,7 @@ pub mod ids {
     /// Whether the node stated an ending balance at all.
     ///
     /// A height for which the node holds no per-block record yields a response with the
-    /// `valuePools` key **omitted entirely** — not zeroed, not empty. A reconstruction
+    /// `valuePools` key **omitted entirely**, not zeroed, not empty. A reconstruction
     /// cannot be compared against a figure that was never served, and agreement asserted
     /// over an absent value corroborates nothing. This check is what stops that being
     /// presented as though it did.
@@ -59,7 +59,7 @@ pub mod ids {
     ///
     /// A manifest is authored by whoever produced the bundle. Its anchor and end balances
     /// are summaries of what the evidence records, so if the two disagree the summary is
-    /// wrong — and the anchor is where every subsequent figure comes from.
+    /// wrong, and the anchor is where every subsequent figure comes from.
     pub const MANIFEST_MATCHES_EVIDENCE: &str = "manifest_matches_evidence";
 
     // Reporting: recorded once a report has been produced and re-verified.
@@ -217,7 +217,7 @@ impl CheckRegistry {
     pub fn sort_canonically(&mut self) {
         // An identifier absent from `ids::ALL` sorts last, and ties among such identifiers
         // are broken by the identifier itself. Without that tiebreak, two unlisted checks
-        // would keep the order they happened to be evaluated in — which would make a
+        // would keep the order they happened to be evaluated in, which would make a
         // canonical report hash depend on evaluation order, the one thing it must not
         // depend on. `unlisted_ids` exists so the condition can be surfaced rather than
         // merely survived.

@@ -1,0 +1,16 @@
+# Files whose exact bytes are hashed must never be translated on checkout.
+#
+# Git converts LF to CRLF on Windows when `core.autocrlf` is enabled, which is the default
+# for Git for Windows. That rewrites the bytes of every text file it touches. For ordinary
+# source that is harmless; for an evidence bundle it is fatal, because the manifest records a
+# SHA-256 of each file and reconciliation refuses to proceed when a digest does not match.
+#
+# Observed directly: `anchor/value-pools.json` is 883 bytes with LF endings and hashes to
+# 029b1f92…; after a CRLF checkout it is 925 bytes and hashes to 31225bd5…, and the tool
+# correctly reports `evidence_hash_mismatch`. Without the rule below, no Windows clone of this
+# repository can reconcile its own committed fixtures or pass its own test suite.
+tests/fixtures/** -text
+
+# Shell scripts are executed by bash, which does not tolerate carriage returns in a shebang
+# line or at the end of a command.
+*.sh text eol=lf
