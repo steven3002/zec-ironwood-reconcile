@@ -60,11 +60,49 @@ for command in verify inspect; do
         grep -E "${NETWORK_PATTERN}" "${TRACE_DIR}/${command}.trace" | head -20 >&2
         fail "${command} touched the network"
     fi
-    printf '  %-8s 0 network syscalls\n' "${command}"
+    printf '  %-22s 0 network syscalls\n' "${command}"
 done
+
+# A single happy path proves little on its own: a different input could reach code the run
+# never executed. The failure paths are where that matters most, because they run different
+# extraction, validation, and error-formatting code. Each variant below is derived from the
+# valid archive so the scenarios stay in step with it.
+printf 'Tracing failure paths...\n'
+
+readonly VARIANTS="${TRACE_DIR}/variants"
+mkdir -p "${VARIANTS}"
+
+cp "${ARCHIVE}" "${VARIANTS}/tampered.tar.zst"
+printf 'corrupted' | dd of="${VARIANTS}/tampered.tar.zst" bs=1 seek=64 conv=notrunc status=none
+
+head -c 200 "${ARCHIVE}" > "${VARIANTS}/truncated.tar.zst"
+printf 'not an archive at all' > "${VARIANTS}/garbage.tar.zst"
+
+check_no_network() {
+    local label="$1"; shift
+    local count
+    count="$(count_network_syscalls "${label}" "$@")"
+
+    if [ "${count}" -ne 0 ]; then
+        printf '%s issued %s network syscall(s):\n' "${label}" "${count}" >&2
+        grep -E "${NETWORK_PATTERN}" "${TRACE_DIR}/${label}.trace" | head -20 >&2
+        fail "${label} touched the network"
+    fi
+    printf '  %-22s 0 network syscalls\n' "${label}"
+}
+
+check_no_network tampered      "${BINARY}" verify "${VARIANTS}/tampered.tar.zst"
+check_no_network truncated     "${BINARY}" verify "${VARIANTS}/truncated.tar.zst"
+check_no_network garbage       "${BINARY}" verify "${VARIANTS}/garbage.tar.zst"
+check_no_network missing-file  "${BINARY}" verify "${VARIANTS}/does-not-exist.tar.zst"
+check_no_network wrong-hash    "${BINARY}" verify "${ARCHIVE}" --expected-report-hash "$(printf '0%.0s' $(seq 64))"
+check_no_network inspect-dir   "${BINARY}" inspect "${VARIANTS}"
 
 # Positive control. `capture` must reach the network, and its failure to connect to an
 # endpoint that is not listening is expected — what matters is that it tried.
+#
+# It doubles as proof that tracing sees more than this crate: every syscall it records is
+# issued from inside `ureq`, since no source file here names a socket operation.
 printf 'Tracing the positive control...\n'
 control="$(count_network_syscalls capture \
     "${BINARY}" --quiet capture \
@@ -76,6 +114,6 @@ control="$(count_network_syscalls capture \
 if [ "${control}" -eq 0 ]; then
     fail "the positive control issued no network syscall, so tracing is not observing anything"
 fi
-printf '  %-8s %s network syscalls (expected)\n' "capture" "${control}"
+printf '  %-22s %s network syscalls (expected)\n' 'capture' "${control}"
 
 printf '\nOffline verification performs no network access.\n'

@@ -280,11 +280,47 @@ fn a_declared_size_larger_than_the_delivered_content_is_rejected() {
         builder.append(&header, &b"0011"[..]).unwrap();
     });
 
-    let result = fixture.extract();
-    assert!(
-        result.is_err(),
-        "an archive whose header lies about its size was accepted"
-    );
+    assert_rejected(fixture.extract(), "declared size larger than the content");
+}
+
+#[test]
+fn a_corrupt_archive_is_rejected_as_evidence_not_reported_as_a_disk_problem() {
+    // A malformed archive is a fact about the file, not about this machine. Classifying it
+    // as a filesystem error would tell an operator to check their disk when they should be
+    // re-downloading, and would hand a scripted verifier the exit code for a broken disk
+    // rather than the one for unusable evidence.
+    let fixture = build_archive(|builder| {
+        append_raw_path(builder, "manifest.json", b"{}");
+    });
+
+    let mut bytes = std::fs::read(&fixture.archive).unwrap();
+    bytes[8] ^= 0xFF;
+    std::fs::write(&fixture.archive, &bytes).unwrap();
+
+    assert_rejected(fixture.extract(), "corrupted archive body");
+}
+
+#[test]
+fn a_truncated_archive_is_rejected_as_evidence() {
+    let fixture = build_archive(|builder| {
+        append_raw_path(builder, "manifest.json", b"{}");
+        append_raw_path(builder, "blocks/1.hex", b"0011");
+    });
+
+    let bytes = std::fs::read(&fixture.archive).unwrap();
+    std::fs::write(&fixture.archive, &bytes[..bytes.len() / 2]).unwrap();
+
+    assert_rejected(fixture.extract(), "truncated archive");
+}
+
+#[test]
+fn a_file_that_is_not_an_archive_at_all_is_rejected_as_evidence() {
+    let fixture = build_archive(|builder| {
+        append_raw_path(builder, "manifest.json", b"{}");
+    });
+    std::fs::write(&fixture.archive, b"this is not an archive").unwrap();
+
+    assert_rejected(fixture.extract(), "not an archive");
 }
 
 #[test]

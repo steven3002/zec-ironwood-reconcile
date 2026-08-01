@@ -45,11 +45,15 @@ pub fn extract(
         source,
     })?;
 
-    let decoder =
-        zstd::Decoder::new(BufReader::new(file)).map_err(|source| ReconcileError::Filesystem {
-            path: archive_path.display().to_string(),
-            source,
-        })?;
+    // A decode failure means the supplied bytes are not a well-formed archive, which is a
+    // fact about the evidence rather than about this machine. Reporting it as a filesystem
+    // error would tell an operator to check their disk when they should be re-downloading,
+    // and would give a scripted verifier the wrong exit code for a corrupt or hostile file.
+    let decoder = zstd::Decoder::new(BufReader::new(file)).map_err(|source| {
+        ReconcileError::ArchiveRejected {
+            reason: format!("not a readable zstd stream: {source}"),
+        }
+    })?;
 
     let mut archive = tar::Archive::new(decoder);
 
@@ -61,18 +65,18 @@ pub fn extract(
 
     let entries = archive
         .entries()
-        .map_err(|source| ReconcileError::Filesystem {
-            path: archive_path.display().to_string(),
-            source,
+        .map_err(|source| ReconcileError::ArchiveRejected {
+            reason: format!("archive contents are not readable: {source}"),
         })?;
 
     let mut count: u32 = 0;
     let mut total: u64 = 0;
 
     for entry in entries {
-        let mut entry = entry.map_err(|source| ReconcileError::Filesystem {
-            path: archive_path.display().to_string(),
-            source,
+        // Reached by a truncated archive or a corrupted tar header, both of which describe
+        // the file rather than the filesystem.
+        let mut entry = entry.map_err(|source| ReconcileError::ArchiveRejected {
+            reason: format!("entry could not be read: {source}"),
         })?;
 
         let raw_path = entry
