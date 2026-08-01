@@ -134,7 +134,20 @@ fn the_offline_verification_path_cannot_reach_the_network_layer() {
     // rather than left to follow from the table above.
     let mut offenders = Vec::new();
 
-    let mut files = vec![source_root().join("commands/verify.rs")];
+    // Every command except `capture` runs offline, and `verify` reaches the accounting path
+    // by calling straight into `commands/reconcile.rs`. Naming the one exception rather than
+    // listing the members means a command added later is covered by default instead of
+    // escaping the rule — which is how `commands/reconcile.rs` came to sit on the
+    // verification path unscanned while only `commands/verify.rs` was listed.
+    let mut files: Vec<PathBuf> = rust_files_under(&source_root().join("commands"))
+        .into_iter()
+        .filter(|path| !path.ends_with("capture.rs"))
+        .collect();
+    assert!(
+        source_root().join("commands/capture.rs").is_file(),
+        "the exempted command no longer exists, so the exemption is stale"
+    );
+
     for layer in [
         "parse",
         "reconcile",

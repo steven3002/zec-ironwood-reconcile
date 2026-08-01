@@ -6,10 +6,18 @@
 //!
 //! # Monetary values
 //!
-//! RFC 8785 canonicalizes JSON numbers through IEEE-754 doubles, which cannot represent
-//! integers above 2^53 exactly. Zatoshi values reach that magnitude, so every monetary
-//! quantity is serialized as a string. [`crate::domain::zatoshi::Zatoshi`] enforces this at
-//! the type level and rejects JSON numbers on deserialization.
+//! RFC 8785 §3.2.2.3 serializes numbers by the ECMAScript algorithm, which is IEEE-754
+//! double precision, and its Appendix B states that true integers should stay within
+//! ±9,007,199,254,740,991 (2^53 − 1). A *valid* zatoshi amount is bounded by `MAX_MONEY` =
+//! 2,100,000,000,000,000 and so stays inside that range, with a margin of only about four.
+//!
+//! Every monetary quantity is nonetheless serialized as a string, because the margin is not
+//! the guarantee: reconciliation accumulates in `i128`, where intermediate values are not
+//! bounded by `MAX_MONEY`, and a captured or supplied figure is untrusted input that a
+//! numeric encoding would silently round rather than reject. A string removes the dependency
+//! on the canonicalizer's number handling altogether.
+//! [`crate::domain::zatoshi::Zatoshi`] enforces this at the type level and rejects JSON
+//! numbers on deserialization.
 //!
 //! # Determinism
 //!

@@ -563,6 +563,43 @@ fn wrong_credentials_fail_with_a_message_that_names_the_likely_cause() {
 }
 
 #[test]
+fn a_refused_connection_is_not_blamed_on_authentication() {
+    // Nothing is listening, so the request never reaches a node that could reject it.
+    // Naming credentials here sends the reader after a problem that does not exist.
+    let address = {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.local_addr().unwrap()
+    };
+
+    let dir = tempfile::tempdir().unwrap();
+    let transport = HttpTransport::new(
+        &format!("http://{address}/"),
+        authentication(),
+        Duration::from_secs(5),
+        1_000,
+    )
+    .unwrap();
+    let client = NodeClient::new(&transport);
+
+    let options = CaptureOptions {
+        request: CaptureRequest::new(Network::Mainnet, START, END, TIP_DISTANCE, None).unwrap(),
+        output_mode: OutputMode::Create,
+        progress_interval: 0,
+    };
+
+    let error = run::run(&client, &options, &dir.path().join("bundle"), &mut |_| {}).unwrap_err();
+    let message = error.to_string();
+    assert!(
+        !message.contains("--rpc-cookie-file"),
+        "a refused connection was blamed on authentication: {message}"
+    );
+    assert!(
+        message.to_lowercase().contains("refused"),
+        "the failure did not name the real cause: {message}"
+    );
+}
+
+#[test]
 fn absent_pool_values_abort_during_preflight_before_any_block_is_fetched() {
     let (node, capture, outcome) = capture_with(Script {
         heights_without_pool_values: vec![ANCHOR],

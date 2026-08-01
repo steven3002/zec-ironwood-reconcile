@@ -167,10 +167,17 @@ same interval and are not inputs to any calculation. Reproducibility applies to 
 
 ### Why monetary values are strings
 
-RFC 8785 canonicalization processes JSON numbers through IEEE-754 doubles, which cannot
-represent integers above 2^53 exactly. Zatoshi values reach that magnitude, so a numeric
-encoding would be silently lossy inside a hashed artifact. This is a correctness
-requirement, not a formatting preference.
+RFC 8785 processes JSON numbers through IEEE-754 doubles, which cannot represent integers
+above 2^53 − 1 = 9,007,199,254,740,991 exactly. A valid zatoshi amount is bounded by
+21,000,000 ZEC = 2,100,000,000,000,000 zatoshi and so stays below that limit, by a factor of
+about four.
+
+The string encoding is not there because valid amounts overflow the limit. It is there
+because nothing else in the pipeline is bounded by it: reconciliation accumulates in a
+128-bit integer, and every figure in a bundle is untrusted input. A numeric encoding would
+round such a value silently; a string encoding cannot, and it removes any dependence on how
+a canonicalizer handles numbers. This is a correctness requirement, not a formatting
+preference.
 
 ---
 

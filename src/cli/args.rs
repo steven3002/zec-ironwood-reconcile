@@ -9,6 +9,13 @@ use crate::domain::network::Network;
 /// Default number of blocks the chain tip must exceed the requested end height before a
 /// capture is permitted. Zcash offers no protocol finality, so a capture taken too close
 /// to the tip can be invalidated by a reorganisation after the fact.
+///
+/// **The value is a conservative choice, not a derived one.** No specification states a
+/// depth beyond which a Zcash reorganisation cannot occur, and no source for one was found.
+/// At the 75-second target spacing, 100 blocks is roughly two hours of chain — far beyond
+/// any reorganisation depth observed in practice, and cheap, since it only delays a capture.
+/// Anyone who has a sourced figure should use it via `--tip-distance` rather than infer one
+/// from this default.
 pub const DEFAULT_TIP_DISTANCE: u32 = 100;
 
 #[derive(Debug, Parser)]

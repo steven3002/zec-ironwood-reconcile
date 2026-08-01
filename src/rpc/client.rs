@@ -39,6 +39,9 @@ const RETRY_BACKOFF: Duration = Duration::from_millis(250);
 /// headroom while refusing to buffer an unbounded response from a hostile or broken peer.
 const MAX_RESPONSE_BYTES: u64 = 32 * 1024 * 1024;
 
+/// Appended only to failures an authentication mistake could actually produce.
+const AUTHENTICATION_HINT: &str = "if the node requires authentication, check --rpc-cookie-file";
+
 /// Performs one JSON-RPC call and yields the `result` member.
 pub trait RpcTransport {
     fn call(
@@ -144,12 +147,11 @@ impl HttpTransport {
         }
 
         let mut response = request.send(body).map_err(|source| {
-            // Zebra closes the connection without an HTTP response when credentials are
-            // missing or wrong, so a bare transport failure is exactly what a caller sees
-            // after an authentication mistake. Saying so here saves a long diagnosis.
-            Attempt::retryable(format!(
-                "{source}; if the node requires authentication, check --rpc-cookie-file"
-            ))
+            Attempt::retryable(if could_be_authentication(&source) {
+                format!("{source}; {AUTHENTICATION_HINT}")
+            } else {
+                source.to_string()
+            })
         })?;
 
         let status = response.status();
@@ -167,7 +169,11 @@ impl HttpTransport {
                 .chars()
                 .take(200)
                 .collect::<String>();
-            let message = format!("node returned HTTP {status}: {excerpt}");
+            let mut message = format!("node returned HTTP {status}: {excerpt}");
+            // A node that answers properly rather than hanging up says so with a status.
+            if matches!(status.as_u16(), 401 | 403) {
+                message = format!("{message}; {AUTHENTICATION_HINT}");
+            }
             return Err(if status.is_server_error() {
                 Attempt::retryable(message)
             } else {
@@ -237,6 +243,32 @@ impl Attempt {
             message,
             retryable: false,
         }
+    }
+}
+
+/// Whether a transport failure is consistent with an authentication mistake.
+///
+/// Zebra closes the connection without an HTTP response when credentials are missing or
+/// wrong, so an authentication mistake reaches this code as a peer that hung up on a
+/// connection it had already accepted. A refused connection, a name that does not resolve,
+/// and a timeout cannot have that cause, and naming authentication for those sends the
+/// reader after a credential problem that does not exist.
+///
+/// Measured against Zebra 6.2.3 on 2026-08-01: a wrong cookie yields
+/// `io: Peer disconnected`, which `ureq` raises as [`std::io::ErrorKind::UnexpectedEof`];
+/// a closed port yields `io: Connection refused`; an unresolvable host yields
+/// `io: failed to lookup address information`. Peers that reset rather than close cleanly
+/// are admitted too, since the symptom is the same hang-up.
+fn could_be_authentication(error: &ureq::Error) -> bool {
+    match error {
+        ureq::Error::Io(source) => matches!(
+            source.kind(),
+            std::io::ErrorKind::UnexpectedEof
+                | std::io::ErrorKind::ConnectionAborted
+                | std::io::ErrorKind::ConnectionReset
+                | std::io::ErrorKind::BrokenPipe
+        ),
+        _ => false,
     }
 }
 
@@ -352,6 +384,39 @@ mod tests {
                 "wrongly treated as local: {url}"
             );
         }
+    }
+
+    #[test]
+    fn a_hang_up_on_an_accepted_connection_could_be_authentication() {
+        for kind in [
+            std::io::ErrorKind::UnexpectedEof,
+            std::io::ErrorKind::ConnectionAborted,
+            std::io::ErrorKind::ConnectionReset,
+            std::io::ErrorKind::BrokenPipe,
+        ] {
+            let error = ureq::Error::Io(std::io::Error::new(kind, "Peer disconnected"));
+            assert!(could_be_authentication(&error), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn an_unreachable_node_is_never_blamed_on_authentication() {
+        // Observed against Zebra 6.2.3: a closed port and an unresolvable host both reach
+        // the transport as an `io` failure, and neither can be a credential problem.
+        let unreachable = [
+            std::io::ErrorKind::ConnectionRefused,
+            std::io::ErrorKind::HostUnreachable,
+            std::io::ErrorKind::NetworkUnreachable,
+            std::io::ErrorKind::TimedOut,
+            std::io::ErrorKind::Other,
+        ];
+        for kind in unreachable {
+            let error = ureq::Error::Io(std::io::Error::new(kind, "Connection refused"));
+            assert!(!could_be_authentication(&error), "{kind:?}");
+        }
+
+        assert!(!could_be_authentication(&ureq::Error::HostNotFound));
+        assert!(!could_be_authentication(&ureq::Error::ConnectionFailed));
     }
 
     #[test]

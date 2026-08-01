@@ -8,9 +8,12 @@
 //! * no monetary value can be serialized as a JSON number.
 //!
 //! The last point is a correctness requirement, not a style preference. RFC 8785
-//! canonicalization coerces JSON numbers to IEEE-754 doubles, which lose integer precision
-//! above 2^53. Zatoshi values reach the same order of magnitude, so a numeric encoding
-//! would be silently lossy inside the hashed report.
+//! canonicalization serializes JSON numbers through IEEE-754 doubles, which lose integer
+//! precision above 2^53 − 1 = 9,007,199,254,740,991. A valid zatoshi amount is bounded by
+//! [`MAX_MONEY`] = 2,100,000,000,000,000 and stays below that, but only by a factor of
+//! about four — and neither an `i128` accumulator nor an untrusted input is bounded by
+//! `MAX_MONEY` at all. A numeric encoding would round such a value silently instead of
+//! rejecting it; a string encoding cannot.
 
 use std::fmt;
 
@@ -218,6 +221,8 @@ mod tests {
     #[test]
     fn round_trips_values_above_the_double_precision_limit() {
         // 2^53 + 1 is not representable as an f64; a numeric encoding would corrupt it.
+        // This is above MAX_MONEY, so no valid amount reaches it — the point is that the
+        // string encoding is sound for any i64, including one an untrusted bundle supplies.
         let value = Zatoshi::from_raw(9_007_199_254_740_993);
         let json = serde_json::to_string(&value).unwrap();
         assert_eq!(serde_json::from_str::<Zatoshi>(&json).unwrap(), value);

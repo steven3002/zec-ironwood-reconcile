@@ -33,14 +33,29 @@ That is the entire claim. In particular the tool does **not**:
 
 ## Why it is not a wrapper around a node
 
-Transaction deserialization uses `zcash_primitives`, a different codebase from the Zebra
-node whose figures are being checked. Everything downstream — the sign convention, the
-per-transaction deltas, the per-block aggregation, the interval accumulation, the anchor
-application, and every check — is implemented in this crate.
+Transaction deserialization uses `zcash_primitives`. Everything downstream — the sign
+convention, the per-transaction deltas, the per-block aggregation, the interval
+accumulation, the anchor application, and every check — is implemented in this crate. No
+Zebra crate appears in this binary's dependency graph.
+
+The claim worth making is narrower than "different codebase", and is checkable. Zebra does
+depend on `zcash_primitives` — at the same version this tool links — but it does not use it
+to read transactions or to compute pool balances. Zebra deserializes transactions with its
+own implementation in `zebra-chain`, and derives each pool's value balance from the fields
+that implementation produced. `zcash_primitives` is reached from Zebra only for transaction
+identifiers and signature hashes, neither of which contributes to a verdict here. So the two
+`valueBalance` figures being compared are decoded from the same consensus bytes by two
+independently written decoders.
+
+That independence is not total, and overstating it would be the wrong argument. The two
+share a large upstream graph, including the cryptographic crates `halo2_proofs`,
+`pasta_curves` and `reddsa`. Those crates do not decode a value balance — both sides read it
+as a little-endian `i64` in their own code — but a defect inside them would be invisible to
+both.
 
 Zebra's reported balances are the hypothesis under test, never an input to the calculation.
-Agreement means two independent implementations over the same public bytes reached the same
-result; disagreement means one of them contains a defect, and locates where.
+Agreement means two independent decoders over the same public bytes reached the same result;
+disagreement means one of them contains a defect, and locates where.
 
 See [`ACCOUNTING_MODEL.md`](ACCOUNTING_MODEL.md) for the arithmetic and its specification
 citations.

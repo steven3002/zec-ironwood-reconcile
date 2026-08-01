@@ -4,8 +4,21 @@
 //! reconstructs *changes* over a bounded interval and does not compute supply from genesis.
 //!
 //! Comparison happens at every height rather than only at the interval endpoints, because
-//! nodes report both a running balance and a per-block delta. Two axes at every height turn
-//! "the totals disagree" into "the totals diverge at this block, in this transaction".
+//! nodes report both a running balance and a per-block delta. Comparing at every height
+//! turns "the totals disagree" into "the totals diverge at this block, in this transaction".
+//!
+//! # What the two axes are, and are not
+//!
+//! Both axes compare a figure **this crate reconstructed from block bytes** against a figure
+//! the node reported, so neither is self-referential. They are not, however, two independent
+//! confirmations of the node. Zebra computes `valueDeltaZat(h)` as
+//! `chainValueZat(h) - chainValueZat(h-1)` from its own stored per-block records, so if the
+//! delta axis agrees at every height and the anchor equals the node's balance at the anchor
+//! height, the balance axis follows by telescoping and cannot independently fail.
+//!
+//! Both are still worth computing. The delta axis localises a divergence to the block that
+//! caused it; the balance axis is what catches an anchor that does not line up with the
+//! interval, which the delta axis alone would not notice.
 
 use std::collections::BTreeMap;
 
@@ -407,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn turnstile_flows_are_observed_as_positive_magnitudes() {
+    fn pool_flows_are_observed_as_positive_magnitudes() {
         let ledgers = vec![ledger(101, -300, 300), ledger(102, -200, 150)];
         let outcome = reconcile_interval(
             &ledgers,
@@ -422,7 +435,7 @@ mod tests {
     }
 
     #[test]
-    fn turnstile_observation_ignores_movement_in_the_opposite_direction() {
+    fn a_pool_flow_ignores_movement_in_the_opposite_direction() {
         // Inflow to Orchard would be a consensus violation post-activation, but the
         // observation must still report only genuine outflow rather than netting.
         let ledgers = vec![ledger(101, -300, 0), ledger(102, 100, 0)];

@@ -47,12 +47,13 @@ pub mod ids {
     pub const PER_HEIGHT_DELTAS_MATCH: &str = "per_height_deltas_match";
     pub const ORCHARD_END_BALANCE_MATCHES: &str = "orchard_end_balance_matches";
     pub const IRONWOOD_END_BALANCE_MATCHES: &str = "ironwood_end_balance_matches";
-    /// Whether the node's end balances were measurements rather than placeholders.
+    /// Whether the node stated an ending balance at all.
     ///
-    /// A node may serve empty pool data during a database upgrade, so a reconstruction
-    /// can "agree" with a figure the node never claimed to have measured. Agreement of that
-    /// kind corroborates nothing, and this check is what stops it being presented as though
-    /// it did.
+    /// A height for which the node holds no per-block record yields a response with the
+    /// `valuePools` key **omitted entirely** — not zeroed, not empty. A reconstruction
+    /// cannot be compared against a figure that was never served, and agreement asserted
+    /// over an absent value corroborates nothing. This check is what stops that being
+    /// presented as though it did.
     pub const END_BALANCES_CORROBORATED: &str = "end_balances_corroborated";
     /// Whether the manifest's summary agrees with the files it indexes.
     ///

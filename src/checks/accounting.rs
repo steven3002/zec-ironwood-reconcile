@@ -41,9 +41,11 @@ pub fn evaluate(
 /// downgraded every correct comparison against a pool that legitimately ends at zero —
 /// which, before the Ironwood pool first receives value, is every capture of the boundary.
 ///
-/// What can still be said is whether a balance was reported at all. A node serving empty
-/// pool data, which Zebra documents as possible during a database upgrade, yields nothing to
-/// compare against, and that is caught here rather than passed over.
+/// What can still be said is whether a balance was reported at all. Zebra serves the
+/// `valuePools` key only for heights it holds a per-block record for, and omits the key
+/// outright otherwise, so an absent balance is a real and reachable state rather than a
+/// hypothetical one. It yields nothing to compare against, and that is caught here rather
+/// than passed over.
 fn check_end_balances_corroborated(
     reported_end_orchard: Option<Zatoshi>,
     reported_end_ironwood: Option<Zatoshi>,

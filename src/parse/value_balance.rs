@@ -102,9 +102,11 @@ mod tests {
 
     #[test]
     fn a_migration_pair_nets_to_the_amount_moved() {
-        // A turnstile migration spends from Orchard and creates into Ironwood. Orchard's
-        // valueBalance is positive (value leaving), Ironwood's is negative (value
-        // entering), so the deltas have opposite signs and equal magnitude.
+        // A transaction that spends from Orchard and creates into Ironwood encodes a
+        // positive Orchard valueBalance (value leaving) and a negative Ironwood one (value
+        // entering), so the deltas have opposite signs and equal magnitude. This exercises
+        // the sign convention on a constructed pair; it is not a claim that migration is
+        // how Ironwood is funded, which real blocks disprove — see `PoolFlows`.
         let moved = 8_100_000_000_000_i64;
         let orchard = pool_delta(moved).unwrap();
         let ironwood = pool_delta(-moved).unwrap();
