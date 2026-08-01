@@ -130,12 +130,20 @@ pub struct AnchorState {
     pub ironwood_balance_zatoshis: Zatoshi,
 }
 
-/// Whether the capturing node said it was tracking each reconstructed pool.
+/// The node's `monitored` flag for each reconstructed pool at the end height.
 ///
-/// A node reports a balance of zero for a pool it is not tracking, so without this a reader
-/// cannot tell a measured zero from a placeholder, and agreement with a placeholder would
-/// look like corroboration when it is nothing of the sort. `None` means the node published
-/// no opinion, which is distinct from a reported `false`.
+/// **The field names are misnomers, kept only for schema compatibility.** They were chosen
+/// on the reading that `monitored` states whether a node is tracking a pool. It does not:
+/// Zebra builds every pool entry through one constructor that sets
+/// `monitored: amount.zatoshis() != 0`, so the flag restates whether the balance is non-zero
+/// and says nothing about tracking.
+///
+/// The value is recorded because it is part of the response, not because anything depends on
+/// it. Nothing in the reconciliation reads it, and no check may be derived from it — treating
+/// it as a tracking signal downgrades every correct comparison against a legitimately empty
+/// pool, which is every capture of the activation boundary.
+///
+/// `None` means the node published no such field at all.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EndStateTracking {
     pub orchard_tracked_by_node: Option<bool>,

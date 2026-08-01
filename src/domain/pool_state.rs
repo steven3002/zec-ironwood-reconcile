@@ -11,13 +11,19 @@
 //! produce a confident and completely wrong reconciliation, so absence is modelled
 //! explicitly and [`ReportedPoolState::require_balance`] refuses to guess.
 //!
-//! # A reported zero is not always a measurement
+//! # The `monitored` flag carries no information, and no check may rest on it
 //!
-//! Absence is not the only way a node declines to state a balance. Zebra also reports
-//! `chainValueZat: 0` together with `monitored: false` for a pool it is not yet tracking at
-//! that height, which is a placeholder rather than an observation. The distinction is
-//! preserved in [`ReportedPoolState::monitored`], because a reconstruction agreeing with an
-//! untracked zero has not been corroborated by anything.
+//! [`ReportedPoolState::monitored`] preserves the node's `monitored` field because it is
+//! part of the response. It must not be read as a statement that the node is or is not
+//! tracking a pool. Zebra constructs every pool entry through one function that sets
+//! `monitored: amount.zatoshis() != 0`, so the flag is a restatement of `chainValueZat != 0`
+//! and is redundant with the balance beside it.
+//!
+//! An earlier version of this crate read it as a tracking signal and downgraded comparisons
+//! against pools it reported as unmonitored. That is wrong in exactly the case that matters
+//! most: a pool legitimately holding zero — the Ironwood pool at every height between
+//! activation and its first inflow — would have had every correct comparison marked as
+//! uncorroborated.
 
 use std::collections::BTreeMap;
 
