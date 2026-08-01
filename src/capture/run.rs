@@ -110,6 +110,11 @@ pub fn run(
 
     let mut writer = BundleWriter::open(bundle_root, options.output_mode)?;
 
+    // Only reachable when resuming: the other modes require an empty or replaced directory.
+    if options.output_mode == OutputMode::Resume {
+        writer.ensure_no_blocks_outside(request.interval)?;
+    }
+
     write_node_responses(&mut writer, &preflight)?;
     let anchor = write_anchor(client, &mut writer, &preflight, request)?;
 
@@ -180,11 +185,15 @@ fn write_anchor(
 ) -> Result<CapturedBlockState, ReconcileError> {
     let height = request.interval.anchor_height();
 
-    if !writer.contains(layout::ANCHOR_BLOCK)? {
-        let hex = client.get_block_raw_hex(height)?;
-        writer.write(layout::ANCHOR_BLOCK, hex.as_bytes(), Encoding::RawBlockHex)?;
+    // Validated on both paths. The anchor is as much evidence as any interval block, and a
+    // resumed capture must not adopt bytes it would have refused to write.
+    if writer.contains(layout::ANCHOR_BLOCK)? {
+        let hex = writer.adopt(layout::ANCHOR_BLOCK, Encoding::RawBlockHex)?;
+        fetch::validate_block_hex(height, &hex)?;
     } else {
-        writer.adopt(layout::ANCHOR_BLOCK, Encoding::RawBlockHex)?;
+        let hex = client.get_block_raw_hex(height)?;
+        fetch::validate_block_hex(height, hex.as_bytes())?;
+        writer.write(layout::ANCHOR_BLOCK, hex.as_bytes(), Encoding::RawBlockHex)?;
     }
 
     writer.write(

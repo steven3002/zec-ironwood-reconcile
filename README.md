@@ -125,18 +125,29 @@ The pinned toolchain is declared in `rust-toolchain.toml`.
 | --- | --- |
 | Domain types, error model, exit codes, CLI surface | Implemented and tested |
 | Evidence format, manifest, hashing, validation | Implemented and tested |
-| Transaction parsing | Implemented; unverified against real Ironwood bundles |
+| Transaction parsing | Implemented; **verified against a real Ironwood bundle on testnet** |
 | Reconciliation and checks | Implemented and tested |
 | Reports and determinism | Implemented and tested |
 | Archive packaging and hardened extraction | Implemented and tested |
 | `inspect` | Implemented and tested |
-| `verify` | Verifies evidence; cannot yet reproduce a report hash |
+| `verify` | Implemented; reproduces a report hash offline |
 | RPC client and `capture` | Implemented; exercised against a live Zebra 6.2.3 node |
-| `reconcile` | Not started |
+| `reconcile` | Implemented; exercised against real Ironwood-era testnet blocks |
 | Published mainnet evidence | Not started |
 
-No component is described as delivered until its tests pass against real chain data. The
-project publishes no evidence bundles yet.
+No component is described as delivered until its tests pass against real chain data.
+
+The end-to-end path is demonstrated on testnet. At height 4,134,683 — where value first
+entered the Ironwood pool, 683 blocks after NU6.3 activated — the tool reconstructs an
+inflow of **125,000,000 zatoshi** from the block's own version 6 transaction bytes, which is
+the figure Zebra independently reports for that height. Every height in the interval agrees
+on both comparison axes, and the archive verifies offline to the same report hash. The
+bundle is committed as a fixture with its provenance in
+[`tests/fixtures/PROVENANCE.md`](tests/fixtures/PROVENANCE.md), so that result is re-checked
+on every build.
+
+**Still open.** Nothing has been demonstrated on mainnet, no evidence bundle has been
+published, and no independent party has reproduced a result.
 
 ## License
 

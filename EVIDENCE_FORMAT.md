@@ -7,7 +7,7 @@ manifest listing every file with its digest.
 This document specifies the format precisely enough for an independent implementation to
 read and validate a bundle without reference to this crate's source.
 
-**Current schema version: `1.0.0`.**
+**Current schema version: `1.1.0`.**
 
 ---
 
@@ -100,7 +100,7 @@ same interval and are not inputs to any calculation. Reproducibility applies to 
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "bundle_id": "mainnet-3428142-3429143",
   "created_at": "2026-07-29T14:30:00Z",
   "tool": {

@@ -842,6 +842,85 @@ fn an_interrupted_capture_resumes_into_an_identical_bundle() {
 }
 
 #[test]
+fn resuming_into_a_bundle_captured_for_another_interval_is_refused() {
+    // Without this, the earlier interval's blocks stay on disk: the manifest does not list
+    // them, so verification only warns, and a published archive carries blocks outside the
+    // interval it declares.
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("bundle");
+
+    {
+        let node = StubNode::start(Script::default());
+        run_capture(&node, Network::Mainnet, OutputMode::Create, &root).unwrap();
+    }
+
+    let node = StubNode::start(Script::default());
+    let transport = HttpTransport::new(
+        &node.url(),
+        authentication(),
+        Duration::from_secs(10),
+        1_000,
+    )
+    .unwrap();
+    let client = NodeClient::new(&transport);
+
+    // Same start, an earlier end: heights END-1 and END are now outside the interval.
+    let options = CaptureOptions {
+        request: CaptureRequest::new(Network::Mainnet, START, END - 2, TIP_DISTANCE, None).unwrap(),
+        output_mode: OutputMode::Resume,
+        progress_interval: 0,
+    };
+
+    let error = run::run(&client, &options, &root, &mut |_| {}).unwrap_err();
+    assert!(matches!(error, ReconcileError::InvalidInput { .. }));
+
+    let message = error.to_string();
+    assert!(message.contains("different interval"), "{message}");
+    assert!(message.contains("--overwrite"), "{message}");
+}
+
+#[test]
+fn resuming_the_same_interval_is_still_permitted() {
+    // The guard must not make ordinary resumption impossible.
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("bundle");
+
+    {
+        let node = StubNode::start(Script {
+            fail_block_requests_after: Some(5),
+            ..Script::default()
+        });
+        run_capture(&node, Network::Mainnet, OutputMode::Create, &root).unwrap_err();
+    }
+
+    let node = StubNode::start(Script::default());
+    let summary = run_capture(&node, Network::Mainnet, OutputMode::Resume, &root).unwrap();
+    assert!(summary.files_reused > 0);
+}
+
+#[test]
+fn a_corrupted_anchor_block_is_refused_on_resume() {
+    // The anchor is evidence like any other block. A resumed capture must not adopt bytes
+    // it would have refused to write.
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("bundle");
+
+    {
+        let node = StubNode::start(Script::default());
+        run_capture(&node, Network::Mainnet, OutputMode::Create, &root).unwrap();
+    }
+
+    std::fs::write(root.join(layout::ANCHOR_BLOCK), b"not hex at all").unwrap();
+    std::fs::remove_file(root.join(layout::MANIFEST)).unwrap();
+
+    let node = StubNode::start(Script::default());
+    let error = run_capture(&node, Network::Mainnet, OutputMode::Resume, &root).unwrap_err();
+
+    assert!(matches!(error, ReconcileError::CaptureIncomplete { .. }));
+    assert!(error.to_string().contains("hexadecimal"), "{error}");
+}
+
+#[test]
 fn a_resumed_bundle_still_validates_against_its_manifest() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("bundle");

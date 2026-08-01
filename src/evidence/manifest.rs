@@ -22,8 +22,12 @@ use crate::evidence::layout;
 /// Manifest schema version understood by this build.
 ///
 /// A bundle declaring a different major version is rejected rather than interpreted, so
-/// that a future format cannot be silently misread as the current one.
-pub const SCHEMA_VERSION: &str = "1.0.0";
+/// that a future format cannot be silently misread as the current one. A minor increment
+/// signals an additive change that an older reader can ignore safely.
+///
+/// `1.1.0` added `end.tracking`, recording whether the capturing node said it was tracking
+/// each reconstructed pool.
+pub const SCHEMA_VERSION: &str = "1.1.0";
 
 /// An RFC 3339 timestamp in UTC.
 ///

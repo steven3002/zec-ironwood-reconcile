@@ -43,9 +43,45 @@ bisection, and the flag flips exactly there.
 **What these do not show.** They are pre-activation testnet blocks. They pin *response
 shape*, not Ironwood behaviour, and cannot close Gate 1.
 
-### Block bytes
+### Block bytes — the Ironwood bundle
 
-*None yet.* When adding one, record:
+`bundles/testnet-ironwood/` is a complete evidence bundle captured from a live **Zebra
+6.2.3** node on **testnet**, on **2026-08-01**.
+
+```
+Bundle id:     testnet-4134682-4134686
+Interval:      4134683..=4134686, anchored at 4134682
+Anchor hash:   000000284e4096a7da0b56dc3cebc48c323ce0ede20ee0daddd7a4f97548b5af
+End hash:      00000b3fc6629f6fe286d7a91bc0f59e06c9b061448bb54fd3d422ed32974438
+Node:          zebra 6.2.3
+```
+
+**Why this interval.** Height 4,134,683 is where value first entered the Ironwood pool on
+testnet, 683 blocks after NU6.3 activated at 4,134,000. It was located by scanning the
+node's reported `valueDeltaZat` for the ironwood pool from the activation height upward.
+
+**The cross-check.** Zebra independently reports, for height 4,134,683:
+
+```json
+{"id": "ironwood", "chainValueZat": 125000000, "valueDeltaZat": 125000000, "monitored": true}
+```
+
+Reconstructing the same figure from the block's own version 6 transaction bytes is what
+this fixture exists to demonstrate, and `tests/end_to_end.rs` asserts it. It is the one
+claim a synthetic fixture cannot support, because a synthetic fixture is built from the same
+understanding of the format as the code that reads it.
+
+The interval also carries a real Orchard balance (25,292,367,414,135 zatoshi) that is
+compared at every height, and the node reports it was tracking both reconstructed pools, so
+the end-balance agreement is a measurement rather than a placeholder.
+
+**What it does not cover.** Four blocks on testnet. It does not establish behaviour across
+a reorganisation, at scale, or on mainnet, and it is not a substitute for the independent
+external reproduction that release requires.
+
+### Further block fixtures
+
+When adding one, record:
 
 ```
 File:            <relative path>
@@ -94,8 +130,11 @@ positive claim about value extraction.
 
 ---
 
-## Open dependency
+## Open dependency — closed
 
-The parse layer's correctness against real Ironwood bundles is **unproven** until at least
-one captured fixture exists containing a version 6 transaction with an Ironwood bundle,
-cross-checked against the capturing node's own reported per-block delta.
+The parse layer's correctness against real Ironwood bundles was unproven until a captured
+fixture existed containing a version 6 transaction with an Ironwood bundle, cross-checked
+against the capturing node's own reported per-block delta.
+
+`bundles/testnet-ironwood/` is that fixture, and the cross-check agrees. What remains open
+is breadth, not existence: mainnet, larger intervals, and reproduction by someone else.

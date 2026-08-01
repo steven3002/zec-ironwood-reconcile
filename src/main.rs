@@ -7,9 +7,11 @@ use std::process::ExitCode as ProcessExitCode;
 
 use clap::Parser;
 
-use zec_ironwood_reconcile::cli::args::{CaptureArgs, Cli, Command, InspectArgs, VerifyArgs};
+use zec_ironwood_reconcile::cli::args::{
+    CaptureArgs, Cli, Command, InspectArgs, ReconcileArgs, VerifyArgs,
+};
 use zec_ironwood_reconcile::cli::exit::ExitCode;
-use zec_ironwood_reconcile::commands::{capture, inspect, verify};
+use zec_ironwood_reconcile::commands::{capture, inspect, reconcile, verify};
 use zec_ironwood_reconcile::error::ReconcileError;
 use zec_ironwood_reconcile::evidence::archive::ExtractionLimits;
 
@@ -28,10 +30,24 @@ fn main() -> ProcessExitCode {
 fn run(cli: &Cli) -> Result<ExitCode, ReconcileError> {
     match &cli.command {
         Command::Capture(args) => run_capture(args, cli.quiet),
-        Command::Reconcile(_) => Err(unimplemented_command("reconcile")),
+        Command::Reconcile(args) => run_reconcile(args),
         Command::Verify(args) => run_verify(args),
         Command::Inspect(args) => run_inspect(args),
     }
+}
+
+/// Reconciles a bundle and writes the report artifacts.
+///
+/// The exit code is the reconciliation's own verdict: a completed run whose accounting
+/// comparison failed exits 1, never 0.
+fn run_reconcile(args: &ReconcileArgs) -> Result<ExitCode, ReconcileError> {
+    let reconciliation = reconcile::reconcile(&args.bundle)?;
+    reconcile::write_reports(&reconciliation, &args.output)?;
+
+    print!("{}", reconcile::render(&reconciliation));
+    Ok(ExitCode::from_check_status(
+        reconciliation.report.overall_status,
+    ))
 }
 
 /// Captures an interval and reports what was written.
@@ -51,18 +67,20 @@ fn run_inspect(args: &InspectArgs) -> Result<ExitCode, ReconcileError> {
     Ok(ExitCode::Success)
 }
 
-/// Verifies an archive's evidence against its manifest.
+/// Verifies an archive offline and reproduces its report hash.
 ///
-/// Reconciliation is not yet wired in, so no report hash is produced. When the caller
-/// supplied an expected hash, that expectation cannot be met and the run must not report
-/// success: an unmet expectation is a failure, not an absence of one.
+/// Extraction happens into a temporary directory that is removed on exit, so verifying an
+/// archive leaves nothing behind and never touches the archive itself.
+///
+/// A supplied expectation that cannot be met is a failure, not an absence of one: a
+/// mismatch exits 1, and so does a run whose own checks failed even when the hash matched.
 fn run_verify(args: &VerifyArgs) -> Result<ExitCode, ReconcileError> {
     let workspace = tempfile::tempdir().map_err(|source| ReconcileError::Filesystem {
         path: "temporary extraction directory".to_owned(),
         source,
     })?;
 
-    let (_, outcome) = verify::verify_archive(
+    let (outcome, reconciliation) = verify::verify_and_reconcile(
         &args.archive,
         workspace.path(),
         args.expected_report_hash.as_deref(),
@@ -71,24 +89,13 @@ fn run_verify(args: &VerifyArgs) -> Result<ExitCode, ReconcileError> {
 
     print!("{}", verify::render(&outcome));
 
-    match outcome.hash_matches() {
-        Some(true) => Ok(ExitCode::Success),
-        Some(false) => Ok(ExitCode::ChecksFailed),
-        None if args.expected_report_hash.is_some() => {
-            eprintln!(
-                "error: a report hash was expected but reconciliation is not yet available in \
-                 this build, so no comparison could be made"
-            );
-            Ok(ExitCode::ChecksFailed)
-        }
-        None => Ok(ExitCode::Success),
+    if outcome.hash_matches() == Some(false) {
+        return Ok(ExitCode::ChecksFailed);
     }
-}
 
-fn unimplemented_command(name: &str) -> ReconcileError {
-    ReconcileError::Internal {
-        reason: format!("command `{name}` is not yet implemented"),
-    }
+    Ok(ExitCode::from_check_status(
+        reconciliation.report.overall_status,
+    ))
 }
 
 #[expect(

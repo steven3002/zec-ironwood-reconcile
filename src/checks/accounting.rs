@@ -3,6 +3,7 @@
 use crate::checks::{Check, CheckRegistry, ids};
 use crate::domain::pool::Pool;
 use crate::domain::zatoshi::Zatoshi;
+use crate::evidence::manifest::EndStateTracking;
 use crate::reconcile::interval::IntervalOutcome;
 
 /// Records every accounting verdict for a completed interval reconciliation.
@@ -14,6 +15,7 @@ pub fn evaluate(
     outcome: &IntervalOutcome,
     reported_end_orchard: Option<Zatoshi>,
     reported_end_ironwood: Option<Zatoshi>,
+    tracking: &EndStateTracking,
     registry: &mut CheckRegistry,
 ) {
     registry.record(Check::pass(ids::ORCHARD_DELTAS_RECONSTRUCTED));
@@ -28,6 +30,56 @@ pub fn evaluate(
         reported_end_ironwood,
         registry,
     );
+    check_end_balances_corroborated(tracking, registry);
+}
+
+/// States whether the node's end balances were measurements or placeholders.
+///
+/// A node reports `chainValueZat: 0` for a pool it is not yet tracking. A reconstruction
+/// that also arrives at zero then "agrees" with a figure the node never claimed to have
+/// measured, and reporting that as a pass would overstate what the evidence supports. The
+/// comparison is still made and still reported; what changes is the confidence attached to
+/// it.
+fn check_end_balances_corroborated(tracking: &EndStateTracking, registry: &mut CheckRegistry) {
+    let untracked: Vec<&str> = [
+        ("orchard", tracking.orchard_tracked_by_node),
+        ("ironwood", tracking.ironwood_tracked_by_node),
+    ]
+    .into_iter()
+    .filter_map(|(pool, tracked)| (tracked == Some(false)).then_some(pool))
+    .collect();
+
+    if !untracked.is_empty() {
+        registry.record(Check::warn(
+            ids::END_BALANCES_CORROBORATED,
+            format!(
+                "the capturing node reported that it is not tracking {}, so the balance it \
+                 states for {} is a placeholder rather than a measurement; agreement with it \
+                 corroborates nothing",
+                untracked.join(" or "),
+                if untracked.len() == 1 {
+                    "that pool"
+                } else {
+                    "those pools"
+                }
+            ),
+        ));
+        return;
+    }
+
+    let unstated =
+        tracking.orchard_tracked_by_node.is_none() || tracking.ironwood_tracked_by_node.is_none();
+
+    if unstated {
+        registry.record(Check::not_applicable(
+            ids::END_BALANCES_CORROBORATED,
+            "the capturing node published no tracking flag, so whether its end balances are \
+             measurements cannot be determined from this bundle",
+        ));
+        return;
+    }
+
+    registry.record(Check::pass(ids::END_BALANCES_CORROBORATED));
 }
 
 /// No reconstructed running balance may be negative at any height.
@@ -153,6 +205,14 @@ mod tests {
     use crate::reconcile::ledger::BlockLedger;
     use std::collections::BTreeMap;
 
+    /// A node that stated it is tracking both reconstructed pools.
+    fn tracked() -> EndStateTracking {
+        EndStateTracking {
+            orchard_tracked_by_node: Some(true),
+            ironwood_tracked_by_node: Some(true),
+        }
+    }
+
     fn ledger(height: u32, orchard: i64, ironwood: i64) -> BlockLedger {
         BlockLedger {
             height: BlockHeight::new(height),
@@ -205,6 +265,7 @@ mod tests {
             &outcome,
             Some(Zatoshi::from_raw(700)),
             Some(Zatoshi::from_raw(300)),
+            &tracked(),
             &mut registry,
         );
 
@@ -221,6 +282,7 @@ mod tests {
             &outcome,
             Some(Zatoshi::from_raw(999)),
             Some(Zatoshi::from_raw(300)),
+            &tracked(),
             &mut registry,
         );
 
@@ -237,7 +299,7 @@ mod tests {
         let outcome = outcome_with(&ledgers, 1_000, BTreeMap::new());
 
         let mut registry = CheckRegistry::new();
-        evaluate(&outcome, None, None, &mut registry);
+        evaluate(&outcome, None, None, &tracked(), &mut registry);
 
         assert_eq!(
             status_of(&registry, ids::ORCHARD_END_BALANCE_MATCHES),
@@ -255,7 +317,7 @@ mod tests {
         let outcome = outcome_with(&ledgers, 1_000, BTreeMap::new());
 
         let mut registry = CheckRegistry::new();
-        evaluate(&outcome, None, None, &mut registry);
+        evaluate(&outcome, None, None, &tracked(), &mut registry);
 
         let check = registry
             .checks()
@@ -279,7 +341,7 @@ mod tests {
         let outcome = outcome_with(&ledgers, 10_000, reported);
 
         let mut registry = CheckRegistry::new();
-        evaluate(&outcome, None, None, &mut registry);
+        evaluate(&outcome, None, None, &tracked(), &mut registry);
 
         let check = registry
             .checks()
@@ -296,7 +358,7 @@ mod tests {
         let outcome = outcome_with(&ledgers, 1_000, BTreeMap::new());
 
         let mut registry = CheckRegistry::new();
-        evaluate(&outcome, None, None, &mut registry);
+        evaluate(&outcome, None, None, &tracked(), &mut registry);
 
         assert_eq!(
             status_of(&registry, ids::PER_HEIGHT_BALANCES_MATCH),

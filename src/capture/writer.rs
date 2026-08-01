@@ -15,6 +15,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::domain::height::{BlockHeight, HeightInterval};
 use crate::error::ReconcileError;
 use crate::evidence::hashing;
 use crate::evidence::layout;
@@ -83,6 +84,47 @@ impl BundleWriter {
     /// Whether a bundle file is already present.
     pub fn contains(&self, relative: &str) -> Result<bool, ReconcileError> {
         Ok(layout::resolve(&self.root, relative)?.is_file())
+    }
+
+    /// Refuses to continue into a bundle already holding blocks from another interval.
+    ///
+    /// `--resume` means "finish this capture", not "start a different one in the same
+    /// directory". Without this, resuming with different bounds leaves the earlier
+    /// interval's blocks on disk: the manifest does not list them, so verification only
+    /// warns, and a published archive would carry blocks outside the interval it declares.
+    pub fn ensure_no_blocks_outside(&self, interval: HeightInterval) -> Result<(), ReconcileError> {
+        let blocks = self.root.join("blocks");
+        let Ok(entries) = fs::read_dir(&blocks) else {
+            return Ok(());
+        };
+
+        let mut foreign: Vec<u32> = entries
+            .flatten()
+            .filter_map(|entry| {
+                let name = entry.file_name().to_str()?.to_owned();
+                let height: u32 = name.split('.').next()?.parse().ok()?;
+                (!interval.contains(BlockHeight::new(height))).then_some(height)
+            })
+            .collect();
+
+        if foreign.is_empty() {
+            return Ok(());
+        }
+
+        foreign.sort_unstable();
+        foreign.dedup();
+
+        Err(ReconcileError::InvalidInput {
+            reason: format!(
+                "{} already holds blocks outside {}..={} (first: {}); it was captured for a \
+                 different interval, so resuming would mix two captures. Use a new --output \
+                 directory, or --overwrite to replace it",
+                self.root.display(),
+                interval.start_height(),
+                interval.end_height(),
+                foreign.first().map_or(0, |height| *height),
+            ),
+        })
     }
 
     /// Writes a bundle file and records its digest.

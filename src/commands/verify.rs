@@ -14,6 +14,8 @@
 
 use std::path::Path;
 
+use crate::checks::Status;
+use crate::commands::reconcile::{self, Reconciliation};
 use crate::error::ReconcileError;
 use crate::evidence::archive::{self, ExtractionLimits};
 use crate::evidence::manifest::Manifest;
@@ -30,6 +32,8 @@ pub struct VerificationOutcome {
     /// Hash of the canonical report, once reconciliation has been performed.
     pub observed_report_hash: Option<String>,
     pub expected_report_hash: Option<String>,
+    /// Overall verdict of the reproduced report, once one has been produced.
+    pub overall_status: Option<Status>,
 }
 
 impl VerificationOutcome {
@@ -73,8 +77,31 @@ pub fn verify_archive(
             warnings,
             observed_report_hash: None,
             expected_report_hash: expected_report_hash.map(str::to_owned),
+            overall_status: None,
         },
     ))
+}
+
+/// Extracts an archive, verifies its evidence, and reproduces its report hash.
+///
+/// This is what a third party runs. Reconciliation goes through the same function
+/// `reconcile` calls, so a hash reproduced here and a hash produced there cannot differ by
+/// construction rather than by discipline.
+pub fn verify_and_reconcile(
+    archive_path: &Path,
+    destination: &Path,
+    expected_report_hash: Option<&str>,
+    limits: &ExtractionLimits,
+) -> Result<(VerificationOutcome, Reconciliation), ReconcileError> {
+    let (manifest, mut outcome) =
+        verify_archive(archive_path, destination, expected_report_hash, limits)?;
+
+    let reconciliation = reconcile::reconcile_with_manifest(destination, &manifest)?;
+
+    outcome.observed_report_hash = Some(reconciliation.report_hash.clone());
+    outcome.overall_status = Some(reconciliation.report.overall_status);
+
+    Ok((outcome, reconciliation))
 }
 
 /// Renders a concise verdict.
@@ -94,6 +121,10 @@ pub fn render(outcome: &VerificationOutcome) -> String {
         None => {
             let _ = writeln!(out, "Report hash:       not computed");
         }
+    }
+
+    if let Some(status) = outcome.overall_status {
+        let _ = writeln!(out, "Checks:            {status:?}");
     }
 
     match outcome.hash_matches() {
@@ -285,6 +316,7 @@ mod tests {
             warnings: Vec::new(),
             observed_report_hash: Some("abc".to_owned()),
             expected_report_hash: None,
+            overall_status: None,
         };
         assert_eq!(outcome.hash_matches(), None);
     }
@@ -299,6 +331,7 @@ mod tests {
             warnings: Vec::new(),
             observed_report_hash: Some("abc".to_owned()),
             expected_report_hash: Some("def".to_owned()),
+            overall_status: None,
         };
         assert_eq!(outcome.hash_matches(), Some(false));
         assert!(render(&outcome).contains("MISMATCH"));
@@ -314,6 +347,7 @@ mod tests {
             warnings: Vec::new(),
             observed_report_hash: Some("abc".to_owned()),
             expected_report_hash: Some("abc".to_owned()),
+            overall_status: None,
         };
         assert_eq!(outcome.hash_matches(), Some(true));
         assert!(render(&outcome).contains("MATCH"));

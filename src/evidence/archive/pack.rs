@@ -11,7 +11,7 @@
 
 use std::fs::File;
 use std::io::BufWriter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::error::ReconcileError;
 use crate::evidence::layout;
@@ -38,13 +38,11 @@ pub fn pack_with_digest(bundle_root: &Path, archive_path: &Path) -> Result<Strin
             reason: format!("{} has no usable file name", archive_path.display()),
         })?;
 
-    let digest_path = archive_path.with_extension(format!(
-        "{}.sha256",
-        archive_path
-            .extension()
-            .and_then(std::ffi::OsStr::to_str)
-            .unwrap_or_default()
-    ));
+    // Appended rather than set as an extension: `with_extension` replaces the last one, so
+    // an archive named without an extension would become `bundle..sha256`.
+    let mut digest_path = archive_path.as_os_str().to_owned();
+    digest_path.push(".sha256");
+    let digest_path = PathBuf::from(digest_path);
 
     std::fs::write(&digest_path, format!("{digest}  {name}\n")).map_err(|source| {
         ReconcileError::Filesystem {
@@ -304,6 +302,29 @@ mod tests {
 
         assert_eq!(contents, format!("{digest}  evidence.tar.zst\n"));
         assert_eq!(digest, hashing::sha256_file(&archive).unwrap());
+    }
+
+    #[test]
+    fn the_digest_sidecar_is_named_by_appending_rather_than_replacing() {
+        // `with_extension` replaces the last extension, so an archive named without one
+        // would have produced `bundle..sha256`.
+        let dir = tempfile::tempdir().unwrap();
+        let bundle = dir.path().join("bundle");
+        std::fs::create_dir_all(&bundle).unwrap();
+        sample_bundle(&bundle);
+
+        for (name, expected) in [
+            ("evidence.tar.zst", "evidence.tar.zst.sha256"),
+            ("evidence.tar", "evidence.tar.sha256"),
+            ("evidence", "evidence.sha256"),
+        ] {
+            let archive = dir.path().join(name);
+            pack_with_digest(&bundle, &archive).unwrap();
+            assert!(
+                dir.path().join(expected).is_file(),
+                "expected a sidecar named {expected} for an archive named {name}"
+            );
+        }
     }
 
     #[test]

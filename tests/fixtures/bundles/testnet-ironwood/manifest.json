@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.1.0",
+  "bundle_id": "testnet-4134682-4134686",
+  "created_at": "2026-08-01T03:53:34.240032028Z",
+  "tool": {
+    "name": "zec-ironwood-reconcile",
+    "version": "0.1.0",
+    "git_commit": null
+  },
+  "source": {
+    "implementation": "zebra",
+    "version": "6.2.3",
+    "rpc_url_redacted": true
+  },
+  "network": "testnet",
+  "activation": {
+    "upgrade": "NU6.3",
+    "expected_height": 4134000
+  },
+  "interval": {
+    "anchor_height": 4134682,
+    "start_height": 4134683,
+    "end_height": 4134686,
+    "block_count": 4
+  },
+  "anchor": {
+    "block_hash": "000000284e4096a7da0b56dc3cebc48c323ce0ede20ee0daddd7a4f97548b5af",
+    "orchard_balance_zatoshis": "25292367414135",
+    "ironwood_balance_zatoshis": "0"
+  },
+  "end": {
+    "block_hash": "00000b3fc6629f6fe286d7a91bc0f59e06c9b061448bb54fd3d422ed32974438",
+    "reported_orchard_balance_zatoshis": "25292367414135",
+    "reported_ironwood_balance_zatoshis": "125000000",
+    "tracking": {
+      "orchard_tracked_by_node": true,
+      "ironwood_tracked_by_node": true
+    }
+  },
+  "files": [
+    {
+      "path": "anchor/block.hex",
+      "sha256": "7f73af4742bfb190c5d425b9822ee5f9af46ee33cd16c25973747be2e7b01207",
+      "size_bytes": 3286,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "anchor/value-pools.json",
+      "sha256": "029b1f92e77785960a0b9cc8a50931e713f175c34a4f24da68fcb0dfb2cb4581",
+      "size_bytes": 883,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/4134683.hex",
+      "sha256": "9f36d00d72710db990571900bcaeccd4f827425003ff2707cae0ee59ebdac873",
+      "size_bytes": 15260,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/4134683.pools.json",
+      "sha256": "4a4155ef1a963a7e43459472c1e8cc83e188ac7e265b01e363dc916f30af62b1",
+      "size_bytes": 897,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/4134684.hex",
+      "sha256": "d7bfccd32700ce7deddab9673388488ce4279787b1e78191fe89873320198b7f",
+      "size_bytes": 3286,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/4134684.pools.json",
+      "sha256": "32ef19a90a8ff533d3ca148e8bfd65abde23c594414386bc6b9f27f90ce43bf8",
+      "size_bytes": 890,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/4134685.hex",
+      "sha256": "5d3b4b18422dac993f815ca985adae03ba74dfa6eb444b37bbdf8421e386bbef",
+      "size_bytes": 3286,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/4134685.pools.json",
+      "sha256": "3e8826f6b93e03f4ae4945fd31f51ac8ff62e508b487b0c30a1e6be24a603967",
+      "size_bytes": 890,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/4134686.hex",
+      "sha256": "0121b1cd892ac8e8c9acbbd06fc7c1ac1cf2d3a667a7be8309b2c30eca2ecc2a",
+      "size_bytes": 3286,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/4134686.pools.json",
+      "sha256": "b21e194e3a0005c50d0f3bc785118292fe70d432c60d11781e551b0410dfeedc",
+      "size_bytes": 890,
+      "encoding": "json"
+    },
+    {
+      "path": "metadata/capture-environment.json",
+      "sha256": "fdd71f5b96558599dd6f13f21616eaf64d1de762aca1fd2630829ed4d42eeb1c",
+      "size_bytes": 472,
+      "encoding": "json"
+    },
+    {
+      "path": "metadata/command.txt",
+      "sha256": "726320ff95750eea4adfc7139e612da929e8bc2e5bd46a69f58e99634df70531",
+      "size_bytes": 135,
+      "encoding": "text"
+    },
+    {
+      "path": "metadata/tool-version.txt",
+      "sha256": "2ef30c267dc0e7dd2ddb76388849101d5ddde728e2c713ce22f0315d163fc7a8",
+      "size_bytes": 29,
+      "encoding": "text"
+    },
+    {
+      "path": "rpc/blockchain-info-end.json",
+      "sha256": "0b66fa62867925c9b51628d437fdd27f976e61b163756f9bb95c057a927d9d35",
+      "size_bytes": 2480,
+      "encoding": "json"
+    },
+    {
+      "path": "rpc/blockchain-info-start.json",
+      "sha256": "0b66fa62867925c9b51628d437fdd27f976e61b163756f9bb95c057a927d9d35",
+      "size_bytes": 2480,
+      "encoding": "json"
+    },
+    {
+      "path": "rpc/node-info.json",
+      "sha256": "cce604ca8246e17df72f4be942062babee0e6382c533d7fba10d16c38dd90148",
+      "size_bytes": 324,
+      "encoding": "json"
+    }
+  ]
+}

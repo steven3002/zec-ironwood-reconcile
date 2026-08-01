@@ -5,4 +5,5 @@
 
 pub mod capture;
 pub mod inspect;
+pub mod reconcile;
 pub mod verify;

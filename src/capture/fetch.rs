@@ -85,12 +85,12 @@ fn parse_stored_pools(
     plan::parse_pool_state(height, &response)
 }
 
-/// Confirms stored block text is a plausible hex encoding of consensus bytes.
+/// Confirms block text is a plausible hex encoding of consensus bytes.
 ///
 /// A truncated file cannot reach this point through an interrupted write, which is atomic,
 /// but it can arrive in a bundle assembled by hand. The check is cheap and the alternative
 /// is a confusing parse failure much later.
-fn validate_block_hex(height: BlockHeight, hex: &[u8]) -> Result<(), ReconcileError> {
+pub fn validate_block_hex(height: BlockHeight, hex: &[u8]) -> Result<(), ReconcileError> {
     if hex.is_empty() {
         return Err(ReconcileError::CaptureIncomplete {
             reason: format!("the stored block for height {height} is empty"),

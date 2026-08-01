@@ -47,17 +47,31 @@ pub mod ids {
     pub const PER_HEIGHT_DELTAS_MATCH: &str = "per_height_deltas_match";
     pub const ORCHARD_END_BALANCE_MATCHES: &str = "orchard_end_balance_matches";
     pub const IRONWOOD_END_BALANCE_MATCHES: &str = "ironwood_end_balance_matches";
+    /// Whether the node's end balances were measurements rather than placeholders.
+    ///
+    /// A node reports a balance of zero for a pool it is not tracking, so a reconstruction
+    /// can "agree" with a figure the node never claimed to have measured. Agreement of that
+    /// kind corroborates nothing, and this check is what stops it being presented as though
+    /// it did.
+    pub const END_BALANCES_CORROBORATED: &str = "end_balances_corroborated";
+    /// Whether the manifest's summary agrees with the files it indexes.
+    ///
+    /// A manifest is authored by whoever produced the bundle. Its anchor and end balances
+    /// are summaries of what the evidence records, so if the two disagree the summary is
+    /// wrong — and the anchor is where every subsequent figure comes from.
+    pub const MANIFEST_MATCHES_EVIDENCE: &str = "manifest_matches_evidence";
 
     // Reporting: recorded once a report has been produced and re-verified.
     pub const CANONICAL_REPORT_GENERATED: &str = "canonical_report_generated";
     pub const OFFLINE_REPORT_HASH_REPRODUCIBLE: &str = "offline_report_hash_reproducible";
 
     /// Every identifier, in the order checks are presented in a report.
-    pub const ALL: [&str; 22] = [
+    pub const ALL: [&str; 24] = [
         MANIFEST_SCHEMA_RECOGNIZED,
         EVIDENCE_HASHES_VALID,
         NETWORK_MATCHES,
         ANCHOR_BLOCK_PRESENT,
+        MANIFEST_MATCHES_EVIDENCE,
         BLOCK_SEQUENCE_COMPLETE,
         PREVIOUS_BLOCK_LINKS_VALID,
         ACTIVATION_CONTEXT_VALID,
@@ -74,6 +88,7 @@ pub mod ids {
         PER_HEIGHT_DELTAS_MATCH,
         ORCHARD_END_BALANCE_MATCHES,
         IRONWOOD_END_BALANCE_MATCHES,
+        END_BALANCES_CORROBORATED,
         CANONICAL_REPORT_GENERATED,
         OFFLINE_REPORT_HASH_REPRODUCIBLE,
     ];

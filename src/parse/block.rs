@@ -103,15 +103,28 @@ pub fn parse_block(
 
 /// Consensus branch identifier expected for transactions at a height.
 ///
-/// Only the NU6.3 boundary is modelled, because the tool reconciles intervals anchored at
-/// or after that activation. A height below activation is reported with the branch
-/// identifier of the preceding upgrade so that the mismatch is surfaced rather than masked.
+/// Delegated to the upgrade table in `zcash_protocol` rather than modelled here. An earlier
+/// version recognised only the NU6.3 boundary and reported every earlier height as NU6.2,
+/// which made any block before the upgrade unparseable — including the pre-activation
+/// intervals that are the only real chain data available while a testnet sync is in
+/// progress.
+///
+/// This is a parsing concern, not an accounting one. The pool arithmetic remains this
+/// crate's own, and the figures it produces are still compared against a different
+/// implementation's.
+///
+/// # What the readback check does and does not prove
+///
+/// Version 5 and 6 transactions carry their branch identifier in their own bytes, so
+/// comparing it against this value is a genuine assertion. Version 3 and 4 transactions do
+/// not: the identifier is supplied to the reader and echoed back, so for those the check is
+/// a tautology. It is still run, because a mixed block must not have the assertion silently
+/// skipped for the versions where it holds.
 fn branch_id_for(network: Network, height: BlockHeight) -> BranchId {
-    if network.is_post_activation(height) {
-        BranchId::Nu6_3
-    } else {
-        BranchId::Nu6_2
-    }
+    BranchId::for_height(
+        &consensus_network(network),
+        zcash_protocol::consensus::BlockHeight::from_u32(height.get()),
+    )
 }
 
 const fn consensus_network(network: Network) -> ConsensusNetwork {
@@ -152,6 +165,30 @@ mod tests {
     fn display_order_is_lowercase_hexadecimal() {
         let rendered = display_hash(&[0xFF_u8; 32]);
         assert_eq!(rendered, "f".repeat(64));
+    }
+
+    #[test]
+    fn branch_id_is_taken_from_the_upgrade_table_at_every_boundary() {
+        // The earlier implementation reported NU6.2 for every pre-activation height, which
+        // made real historical blocks unparseable.
+        // Boundaries taken from the upgrade table a live Zebra 6.2.3 node published for
+        // testnet: Sapling 280,000, Heartwood 903,800, Canopy 1,028,500.
+        let testnet = Network::Testnet;
+        for (height, expected) in [
+            (279_999_u32, BranchId::Overwinter),
+            (280_000, BranchId::Sapling),
+            (280_760, BranchId::Sapling),
+            (903_799, BranchId::Blossom),
+            (903_800, BranchId::Heartwood),
+            (1_028_499, BranchId::Heartwood),
+            (1_028_500, BranchId::Canopy),
+        ] {
+            assert_eq!(
+                branch_id_for(testnet, BlockHeight::new(height)),
+                expected,
+                "testnet height {height}"
+            );
+        }
     }
 
     #[test]
