@@ -318,6 +318,11 @@ mod tests {
         }
     }
 
+    // The behaviour under test is platform independent — `symlink_metadata` reports links on
+    // every target. Only the setup is not: creating a symbolic link on Windows requires
+    // developer mode or elevation, so the test is restricted to targets where it can be
+    // arranged without special privileges.
+    #[cfg(unix)]
     #[test]
     fn symbolic_links_are_not_archived() {
         let dir = tempfile::tempdir().unwrap();

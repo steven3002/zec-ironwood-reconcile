@@ -163,6 +163,31 @@ fn reconciliation_is_deterministic_across_runs() {
 }
 
 #[test]
+fn the_committed_bundle_reconciles_to_its_published_hash_on_every_platform() {
+    // Every other determinism assertion here compares the tool against itself on one machine,
+    // which cannot distinguish "reproducible" from "consistently wrong". A platform that
+    // computes a different hash from identical evidence passes all of them.
+    //
+    // That is not hypothetical. Before the fix in `evidence::layout::to_bundle_path`, Windows
+    // rendered bundle-relative paths with backslashes, matched nothing in the manifest, warned
+    // that all 16 files were unlisted, and hashed that warning into the report — yielding
+    // fd43e96c… against the value below, with the whole suite green.
+    //
+    // Pinning the literal is what makes a cross-platform CI run meaningful. If this fails,
+    // find out why before changing it; the constant is only wrong if the report schema or the
+    // fixture changed deliberately.
+    const PUBLISHED_REPORT_HASH: &str =
+        "4a5d4d7603618a80a8de29c84fe8e6fb601365f06502be374d1e43338902039e";
+
+    let reconciliation = reconcile::reconcile(&fixture_bundle()).unwrap();
+
+    assert_eq!(
+        reconciliation.report_hash, PUBLISHED_REPORT_HASH,
+        "the committed bundle no longer reconciles to its published hash"
+    );
+}
+
+#[test]
 fn reconciliation_does_not_modify_the_bundle() {
     // A bundle's digests must not be disturbed by reading it, or verifying a bundle would
     // change the thing being verified.

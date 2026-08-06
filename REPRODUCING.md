@@ -214,14 +214,26 @@ anything.
 
 ## Step 6, Repeat on a different machine, if you can
 
-Determinism across machines has been demonstrated once: the same report hash was reproduced
-byte for byte on Windows/WSL2 and on Ubuntu, from the same commit. Both were `x86_64`.
+Determinism across machines has been demonstrated on three: the same report hash was reproduced
+byte for byte on Ubuntu, on Windows/WSL2, and on **native Windows**, from the same commit. All
+three were `x86_64`.
 
-What that leaves untested is a **different CPU architecture**. If you have access to an
-`aarch64` machine, an Apple Silicon Mac, an ARM server, a Raspberry Pi, running steps 2 and
-4 there and reporting the hash would close the last variable anyone has raised. Both
-architectures are little-endian, so a difference would be surprising; surprising is exactly
-what is worth checking.
+The native Windows run is worth singling out, because it did not agree on the first attempt.
+WSL2 runs a Linux kernel, so it had tested a different host rather than a different operating
+system. Native Windows was the first genuinely different platform and it exposed two real
+defects: line-ending translation corrupted the committed evidence on checkout, and a path
+separator reaching a hashed check result made the tool compute a **different report hash from
+identical evidence**. Both are fixed, and the repository now pins the published hash as a test
+literal and runs its suite on Windows and macOS in CI.
+
+That history is the reason this step is worth your time. Two prior reproductions and a full
+audit had all passed.
+
+What remains untested is a **different CPU architecture**. If you have access to an `aarch64`
+machine, an Apple Silicon Mac, an ARM server, a Raspberry Pi, running steps 2 and 4 there and
+reporting the hash would close the last variable anyone has raised. Both architectures are
+little-endian, so a difference would be surprising; surprising is exactly what is worth
+checking.
 
 A second run on any machine other than your own is still worth reporting even if it is
 `x86_64`.
@@ -333,7 +345,10 @@ Write-Output ("match          : " + $(if ($Observed -eq $Expected) { "YES" } els
 Write-Output "=============== COPY EVERYTHING ABOVE THIS LINE ==============="
 ```
 
-**This block has not been executed on Windows by the project.** The POSIX procedure has been
-cold-run from a clean clone; this one is written from the same steps but not verified on the
-platform it targets. If it fails, that is worth reporting, send the error text. A broken
-instruction is a more useful result than a matching hash.
+**This block has been executed on native Windows, in PowerShell, and reproduced the expected
+hash.** It is no longer untested guidance.
+
+Getting there took two fixes to the repository, both described in step 6. If you are working
+from a clone taken before commit `18021d0`, expect either `evidence_hash_mismatch` on
+`anchor/value-pools.json` or a hash of `fd43e96c…`; pull first. If you see either symptom on a
+current clone, that is a finding worth reporting rather than something to work around.

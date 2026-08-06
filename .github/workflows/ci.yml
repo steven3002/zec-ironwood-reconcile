@@ -53,6 +53,30 @@ jobs:
       - name: Trace verification
         run: ./scripts/check-offline-verify.sh
 
+  # The Linux-only matrix missed two defects that a single Windows run found, one of which
+  # produced a different report hash from identical evidence. `macos-latest` is Apple Silicon,
+  # so it also supplies the aarch64 coverage no other job provides.
+  cross-platform:
+    name: Reproduces the published hash on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: rustup show
+
+      # Asserts the committed bundle still reconciles to its published hash. The rest of the
+      # suite only compares the tool against itself, which a consistently wrong platform passes.
+      - name: Test
+        run: cargo test --all-features
+
+      - name: Release build
+        run: cargo build --release
+
   supply-chain:
     name: Advisories and licenses
     runs-on: ubuntu-latest
