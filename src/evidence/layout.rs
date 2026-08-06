@@ -84,6 +84,46 @@ pub fn validate_relative_path(path: &str) -> Result<(), ReconcileError> {
     Ok(())
 }
 
+/// Renders a path inside a bundle as the bundle-relative form the manifest records.
+///
+/// The separator is always `/`, on every platform. A `Path` on Windows renders with
+/// backslashes, so producing this string with `to_str` yields `blocks\1.hex` there against
+/// the `blocks/1.hex` a manifest stores. Nothing then matches: every file in the bundle is
+/// reported as unlisted, that becomes a warning, and the warning enters the hashed check
+/// array — so the same evidence yields a different report hash on Windows than on Linux,
+/// which is precisely the property this project exists to guarantee.
+///
+/// Built from [`Path::components`] rather than by replacing characters, so the result cannot
+/// depend on how the caller spelled the path.
+pub fn to_bundle_path(root: &Path, path: &Path) -> Result<String, ReconcileError> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| ReconcileError::Internal {
+            reason: format!("path {} escaped the bundle root", path.display()),
+        })?;
+
+    let mut rendered = String::new();
+    for component in relative.components() {
+        let Component::Normal(part) = component else {
+            return Err(ReconcileError::ManifestInvalid {
+                reason: format!("unexpected path component in {}", relative.display()),
+            });
+        };
+        let part = part
+            .to_str()
+            .ok_or_else(|| ReconcileError::ManifestInvalid {
+                reason: format!("file name is not valid UTF-8: {}", relative.display()),
+            })?;
+
+        if !rendered.is_empty() {
+            rendered.push('/');
+        }
+        rendered.push_str(part);
+    }
+
+    Ok(rendered)
+}
+
 /// Resolves a bundle-relative path against a bundle root, after validating it.
 pub fn resolve(root: &Path, relative: &str) -> Result<PathBuf, ReconcileError> {
     validate_relative_path(relative)?;
@@ -156,6 +196,44 @@ mod tests {
     fn empty_and_current_directory_paths_are_rejected() {
         assert!(validate_relative_path("").is_err());
         assert!(validate_relative_path("./blocks/1.hex").is_err());
+    }
+
+    #[test]
+    fn a_bundle_path_always_uses_forward_slashes() {
+        // Built from components, so the rendered form cannot inherit the platform
+        // separator. On Windows `to_str` would yield `blocks\\1.hex`, which matches nothing
+        // in a manifest and made every file look unlisted — a warning that then entered the
+        // hashed check array and changed the report hash.
+        let root = Path::new("/bundles/example");
+        let nested = root.join("blocks").join("3428143.hex");
+
+        let rendered = to_bundle_path(root, &nested).unwrap();
+        assert_eq!(rendered, "blocks/3428143.hex");
+        assert!(!rendered.contains('\\'));
+        assert!(validate_relative_path(&rendered).is_ok());
+    }
+
+    #[test]
+    fn a_bundle_path_at_the_root_has_no_separator() {
+        let root = Path::new("/bundles/example");
+        assert_eq!(
+            to_bundle_path(root, &root.join(MANIFEST)).unwrap(),
+            MANIFEST
+        );
+    }
+
+    #[test]
+    fn a_path_outside_the_root_is_refused() {
+        assert!(to_bundle_path(Path::new("/bundles/example"), Path::new("/etc/passwd")).is_err());
+    }
+
+    #[test]
+    fn every_rendered_bundle_path_round_trips_through_resolve() {
+        let root = Path::new("/bundles/example");
+        for relative in [MANIFEST, ANCHOR_BLOCK, "blocks/1.hex", METADATA_COMMAND] {
+            let resolved = resolve(root, relative).unwrap();
+            assert_eq!(to_bundle_path(root, &resolved).unwrap(), relative);
+        }
     }
 
     #[test]

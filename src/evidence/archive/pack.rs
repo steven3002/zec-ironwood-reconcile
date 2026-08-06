@@ -159,18 +159,9 @@ fn walk(root: &Path, directory: &Path, found: &mut Vec<String>) -> Result<(), Re
         if metadata.is_dir() {
             walk(root, &path, found)?;
         } else if metadata.is_file() {
-            let relative = path
-                .strip_prefix(root)
-                .map_err(|_| ReconcileError::Internal {
-                    reason: format!("path {} escaped the bundle root", path.display()),
-                })?;
-            let relative = relative
-                .to_str()
-                .ok_or_else(|| ReconcileError::ManifestInvalid {
-                    reason: format!("file name is not valid UTF-8: {}", relative.display()),
-                })?;
-            layout::validate_relative_path(relative)?;
-            found.push(relative.to_owned());
+            let relative = layout::to_bundle_path(root, &path)?;
+            layout::validate_relative_path(&relative)?;
+            found.push(relative);
         }
     }
     Ok(())

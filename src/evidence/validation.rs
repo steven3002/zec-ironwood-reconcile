@@ -9,7 +9,7 @@
 
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::canonical;
 use crate::error::ReconcileError;
@@ -215,26 +215,10 @@ fn walk(root: &Path, directory: &Path, found: &mut Vec<String>) -> Result<(), Re
         if metadata.is_dir() {
             walk(root, &path, found)?;
         } else {
-            found.push(relative_path(root, &path)?);
+            found.push(layout::to_bundle_path(root, &path)?);
         }
     }
     Ok(())
-}
-
-fn relative_path(root: &Path, path: &Path) -> Result<String, ReconcileError> {
-    let relative: PathBuf = path
-        .strip_prefix(root)
-        .map_err(|_| ReconcileError::Internal {
-            reason: format!("path {} escaped the bundle root", path.display()),
-        })?
-        .to_path_buf();
-
-    relative
-        .to_str()
-        .map(str::to_owned)
-        .ok_or_else(|| ReconcileError::ManifestInvalid {
-            reason: format!("file name is not valid UTF-8: {}", relative.display()),
-        })
 }
 
 /// Convenience digest of arbitrary bytes, used when writing bundles.
@@ -253,6 +237,7 @@ mod tests {
         SCHEMA_VERSION, Source, Tool,
     };
     use std::io::Write;
+    use std::path::PathBuf;
 
     struct Bundle {
         _dir: tempfile::TempDir,
