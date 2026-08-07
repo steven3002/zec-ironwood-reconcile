@@ -289,7 +289,7 @@ balance.
 
 Mainnet funded Ironwood by moving value out of Orchard rather than by issuing it. At height
 3,428,144, the first block after NU6.3 activated, Ironwood gained 1,000,000 zatoshi while
-Orchard released 1,020,000 — the outflow **exceeded** the inflow, the reverse of the testnet
+Orchard released 1,020,000, the outflow **exceeded** the inflow, the reverse of the testnet
 case, with the 20,000 difference appearing in the transparent pool.
 
 The excess is not always issuance either. Across the captured mainnet heights the six pool

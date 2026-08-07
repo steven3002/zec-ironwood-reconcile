@@ -66,7 +66,7 @@ fn the_committed_bundle_reconciles_to_its_published_hash_on_every_platform() {
     // If this fails, find out why before changing it; the constant is only wrong if the
     // report schema or the fixture changed deliberately.
     const PUBLISHED_REPORT_HASH: &str =
-        "0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db";
+        "e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e";
 
     let reconciliation = reconcile::reconcile(&mainnet_bundle()).unwrap();
 

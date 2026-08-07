@@ -140,7 +140,7 @@ pub fn parse_pool_state(
 /// Renders the pool-state file a bundle stores for one height.
 ///
 /// The node's response is projected onto the fields that describe the block before it is
-/// written, so that capturing the same height twice, on resume, or by a second operator —
+/// written, so that capturing the same height twice, on resume, or by a second operator,
 /// produces the same bytes.
 pub fn pool_state_bytes(response: &serde_json::Value) -> Result<Vec<u8>, ReconcileError> {
     serialize_response(&pool_state_file::project(response))

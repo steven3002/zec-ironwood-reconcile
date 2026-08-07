@@ -7,7 +7,7 @@ You need **no node, no internet access, no database, no hosted service, no walle
 infrastructure belonging to this project**. You need the archive, its digest, the expected
 report hash, and a machine that can build Rust.
 
-**No release has been tagged and no independent party has reproduced a result.** The
+**No independent party has reproduced a result.** The
 procedure below was fixed in advance of any publication, rather than written to fit whatever
 a first reproduction happened to do, and the mainnet evidence it now walks through was
 captured afterwards.
@@ -60,9 +60,9 @@ A publication is incomplete unless it includes all five:
 | --- | --- |
 | The archive | `mainnet-3428141-3428146.tar.zst` |
 | Its SHA-256 digest, in `sha256sum -c` format | `mainnet-3428141-3428146.tar.zst.sha256` |
-| The expected canonical report hash | `0a2ca229…` |
+| The expected canonical report hash | `e1092994…` |
 | The exact verification command | see step 4 |
-| The tool version and git commit that produced it | `0.1.0`, commit `abc1234` |
+| The tool version and git commit that produced it | `1.0.0`, tag `v1.0.0` |
 
 If the expected report hash is missing, you can still verify the archive's internal
 consistency, but you cannot confirm you arrived at the same answer as the publisher. Ask for
@@ -78,11 +78,11 @@ diverging height.
 
 | Bundle id | Network | Interval | Report hash | Archive SHA-256 |
 | --- | --- | --- | --- | --- |
-| `mainnet-3428141-3428146` | mainnet | 3428142–3428146 | `0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db` | `da2db22303bab2dd33ee0262524c46c7bb834a499ac0dc69c738d2073d1ef177` |
-| `mainnet-3428143-3428147` | mainnet | 3428144–3428147 | `64d975d67b5c97251e13ee8e3c3dd9f21273d2d379157236094aac6a0dbdb157` | `fa94524b64a36891dd6eb9aabfcd3379e87ae17d16faa0a9227a2516a9f91dcc` |
-| `mainnet-3439599-3439699` | mainnet | 3439600–3439699 | `ea003acbe31b1ed33d73e46575234034fdf4496eef895d4829096d4f2fa17527` | `f63bcdbdfaf34eeca6e2a3382fd25c8e8ab9e817af761278b2dbbe92291ee886` |
-| `testnet-4134682-4134686` | testnet | 4134683–4134686 | `4a5d4d7603618a80a8de29c84fe8e6fb601365f06502be374d1e43338902039e` | packed on demand from the committed fixture |
-| `testnet-4133998-4134010` | testnet | 4133999–4134010 | `f7fa98a4c1fe42cd213372dd0116c5a8026d09ee012d4342b779b4a4b34edf16` | packed on demand from the committed fixture |
+| `mainnet-3428141-3428146` | mainnet | 3428142–3428146 | `e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e` | `da2db22303bab2dd33ee0262524c46c7bb834a499ac0dc69c738d2073d1ef177` |
+| `mainnet-3428143-3428147` | mainnet | 3428144–3428147 | `67774f62162ee588282c1e99efc66653d0e50923b008b0d28514b1de2b43575e` | `fa94524b64a36891dd6eb9aabfcd3379e87ae17d16faa0a9227a2516a9f91dcc` |
+| `mainnet-3439599-3439699` | mainnet | 3439600–3439699 | `84c797f3cf03ffc039ae5c5751586a1d16d0048d679f9a9fdb99ac62c02a5d0a` | `f63bcdbdfaf34eeca6e2a3382fd25c8e8ab9e817af761278b2dbbe92291ee886` |
+| `testnet-4134682-4134686` | testnet | 4134683–4134686 | `9a103df10d29704708864da39d320bd0ad1e0bafd02f8a2f785760fbca0785aa` | packed on demand from the committed fixture |
+| `testnet-4133998-4134010` | testnet | 4133999–4134010 | `b60fdf9586ae565764059fea09f4ff07d7a5ca0268e9c04172cd2dfe7d3cba83` | packed on demand from the committed fixture |
 
 **Start with `mainnet-3428141-3428146`.** It spans the NU6.3 activation height on mainnet and
 is the one bundle whose 23 checks all reach an affirmative verdict over pools that actually
@@ -123,7 +123,7 @@ collapses the two.
 ```sh
 git clone <repository-url> zec-ironwood-reconcile
 cd zec-ironwood-reconcile
-git checkout <the published commit>
+git checkout v1.0.0
 cargo build --release
 ```
 
@@ -137,7 +137,7 @@ Record the version you built:
 ```
 
 ```
-zec-ironwood-reconcile 0.1.0
+zec-ironwood-reconcile 1.0.0
 ```
 
 If this does not match the published tool version, say so in your report. It does not
@@ -160,7 +160,7 @@ network reported, before you apply it to anything the publisher gave you.
 ```sh
 ./target/release/zec-ironwood-reconcile verify \
   mainnet-3428141-3428146.tar.zst \
-  --expected-report-hash 0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db
+  --expected-report-hash e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e
 ```
 
 A successful reproduction looks like this, and the figures are real output:
@@ -170,7 +170,7 @@ Bundle:            mainnet-3428141-3428146
 Entries extracted: 20
 Bytes extracted:   572424
 Files verified:    18
-Report hash:       0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db
+Report hash:       e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e
 Checks:            Pass
 Result:            MATCH
 ```
@@ -180,11 +180,11 @@ and exits **0**. The other two mainnet archives verify the same way:
 ```sh
 ./target/release/zec-ironwood-reconcile verify \
   mainnet-3428143-3428147.tar.zst \
-  --expected-report-hash 64d975d67b5c97251e13ee8e3c3dd9f21273d2d379157236094aac6a0dbdb157
+  --expected-report-hash 67774f62162ee588282c1e99efc66653d0e50923b008b0d28514b1de2b43575e
 
 ./target/release/zec-ironwood-reconcile verify \
   mainnet-3439599-3439699.tar.zst \
-  --expected-report-hash ea003acbe31b1ed33d73e46575234034fdf4496eef895d4829096d4f2fa17527
+  --expected-report-hash 84c797f3cf03ffc039ae5c5751586a1d16d0048d679f9a9fdb99ac62c02a5d0a
 ```
 
 `verify` extracts the archive into a temporary directory it creates, validates the manifest
@@ -196,7 +196,7 @@ does, so a hash produced by one and reproduced by the other cannot differ by con
 ### If the hash does not match
 
 ```
-Report hash:       0a2ca229…
+Report hash:       e1092994…
 Checks:            Pass
 Result:            MISMATCH
 Expected:          0000000000000000000000000000000000000000000000000000000000000000
@@ -252,10 +252,23 @@ anything.
 
 ### What has actually been run where
 
-| Report hash | Reproduced on | Not yet run on |
-| --- | --- | --- |
-| `4a5d4d76…`, testnet | Ubuntu, Windows/WSL2, native Windows — three machines, all `x86_64` | macOS, `aarch64` |
-| `0a2ca229…`, `64d975d6…`, `ea003acb…`, mainnet | Two Ubuntu `x86_64` hosts, both operated by the publisher | any machine the publisher does not operate; any other OS or architecture |
+**These reproductions were performed against version 0.1.0, and the figures they produced are
+not the figures this release produces.** The package version is part of the hashed report, so
+the 1.0.0 release reconciles the same evidence to different hashes. The evidence bytes did not
+change; nothing was re-captured. What changed is the version string inside every report.
+
+| Report hash observed | Under | Reproduced on | Not yet run on |
+| --- | --- | --- | --- |
+| `4a5d4d76…`, testnet | 0.1.0 | Ubuntu, Windows/WSL2, native Windows, three machines, all `x86_64` | macOS, `aarch64` |
+| `0a2ca229…`, `64d975d6…`, `ea003acb…`, mainnet | 0.1.0 | Two Ubuntu `x86_64` hosts, both operated by the publisher | any machine the publisher does not operate; any other OS or architecture |
+| `9a103df1…` testnet, `e1092994…` `67774f62…` `84c797f3…` mainnet | **1.0.0, this release** | one Ubuntu `x86_64` host | **everything else, including every machine above** |
+
+The last row is the one that matters for anyone reproducing today, and it is the weakest of
+the three. Cross-platform agreement was established for the 0.1.0 figures and has not yet been
+re-established for 1.0.0. The determinism argument is unchanged, nothing platform-dependent
+enters a report, and the pinned test literals would fail a machine that disagreed, but the
+argument is no longer backed by three machines having agreed on the figures this release
+actually emits.
 
 The mainnet row is the weaker of the two and is stated that way deliberately. The two hosts
 run the same Ubuntu release on the same architecture with the same pinned toolchain, and
@@ -289,8 +302,8 @@ audit had all passed.
 
 1. **Any mainnet hash on a machine the publisher does not operate.** This is the largest gap.
    Every mainnet figure published here rests on two near-identical hosts.
-2. **A different CPU architecture.** If you have an `aarch64` machine — an Apple Silicon Mac,
-   an ARM server, a Raspberry Pi — running steps 2 and 4 there would close the last variable
+2. **A different CPU architecture.** If you have an `aarch64` machine, an Apple Silicon Mac,
+   an ARM server, a Raspberry Pi, running steps 2 and 4 there would close the last variable
    anyone has raised. Both architectures are little-endian, so a difference would be
    surprising; surprising is exactly what is worth checking.
 3. **macOS on any architecture**, which no run has covered.
@@ -382,14 +395,14 @@ expect and not for an interesting one.
 
 | `$Bundle` | `$Expected` |
 | --- | --- |
-| `mainnet-activation-boundary` | `0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db` |
-| `testnet-ironwood` | `4a5d4d7603618a80a8de29c84fe8e6fb601365f06502be374d1e43338902039e` |
-| `testnet-activation-boundary` | `f7fa98a4c1fe42cd213372dd0116c5a8026d09ee012d4342b779b4a4b34edf16` |
+| `mainnet-activation-boundary` | `e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e` |
+| `testnet-ironwood` | `9a103df10d29704708864da39d320bd0ad1e0bafd02f8a2f785760fbca0785aa` |
+| `testnet-activation-boundary` | `b60fdf9586ae565764059fea09f4ff07d7a5ca0268e9c04172cd2dfe7d3cba83` |
 
 ```powershell
 $Bundle   = "mainnet-activation-boundary"
-$Expected = "0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db"
-$Commit   = "<the published commit>"
+$Expected = "e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e"
+$Commit   = "v1.0.0"
 
 if (Test-Path repro-zec) { Remove-Item -Recurse -Force repro-zec }
 git clone --quiet https://github.com/steven3002/zec-ironwood-reconcile.git repro-zec
@@ -418,13 +431,15 @@ Write-Output "=============== COPY EVERYTHING ABOVE THIS LINE ==============="
 ```
 
 **What has been run here, precisely.** This block was executed on native Windows, in
-PowerShell, against `testnet-ironwood` at commit `ac045a2a8f127e26236f3f4b8b60b1eb582d6682`,
-and reproduced `4a5d4d76…`. The mainnet pairing is the same code path over a different
+PowerShell, against `testnet-ironwood` at commit `2f9b5c030c121d49706ee7d1fde7b10a3dfa52d0`,
+under version 0.1.0, and reproduced `4a5d4d76…`, the figure that version emitted. This
+release emits `9a103df1…` for the same evidence. The mainnet pairing is the same code path
+over a different
 directory and has **not** been run on Windows. If you run it, you are the first, and that is
 worth reporting whichever way it comes out.
 
 Getting the Windows path working at all took two fixes to the repository, both described in
-step 6. If you are working from a clone taken before commit `18021d0`, expect either
+step 6. If you are working from a clone taken before commit `f2372e1`, expect either
 `evidence_hash_mismatch` on `anchor/value-pools.json` or a hash of `fd43e96c…`; pull first. If
 you see either symptom on a current clone, that is a finding worth reporting rather than
 something to work around.

@@ -135,7 +135,6 @@ than its configured maximum. Results describe the captured interval and nothing 
 Stated because a limitations document that omits the status of its own evidence is
 incomplete.
 
-- **No release has been tagged.** The crate version is `0.1.0` and unreleased.
 - **No independent party has reproduced a result.** This is the largest open gap and no
   amount of further work by the publisher closes it.
 - **No mainnet report hash has been reproduced outside the publisher's own machines.** Three

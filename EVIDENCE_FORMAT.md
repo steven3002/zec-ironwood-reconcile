@@ -107,7 +107,7 @@ same interval and are not inputs to any calculation. Reproducibility applies to 
   "created_at": "2026-07-29T14:30:00Z",
   "tool": {
     "name": "zec-ironwood-reconcile",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "git_commit": "abc123"
   },
   "source": {

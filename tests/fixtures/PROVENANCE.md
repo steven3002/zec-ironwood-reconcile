@@ -166,7 +166,7 @@ neither is a rule.
 The reconstruction from the blocks' own version 6 transaction bytes agrees at every height
 in the interval, on both the running balance and the per-block delta.
 `tests/mainnet_evidence.rs` pins that agreement and the bundle's published report hash,
-`0a2ca229…`.
+`e1092994…`.
 
 The `monitored` flag also flips `false` → `true` at exactly 3,428,144, the height Ironwood
 first held value. That is the same behaviour the testnet sapling pair at 280,768/280,769

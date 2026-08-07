@@ -38,7 +38,7 @@ pub fn evaluate(
 /// rest. Zebra's source refutes that reading: every pool is built by one constructor that
 /// sets `monitored: amount.zatoshis() != 0`, so the flag is a restatement of "the balance is
 /// non-zero" and carries nothing the balance does not. Reading it as a tracking signal
-/// downgraded every correct comparison against a pool that legitimately ends at zero —
+/// downgraded every correct comparison against a pool that legitimately ends at zero,
 /// which, before the Ironwood pool first receives value, is every capture of the boundary.
 ///
 /// What can still be said is whether a balance was reported at all. Zebra serves the

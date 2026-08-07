@@ -4,14 +4,13 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**No release has been tagged.** The crate version is `0.1.0` and every entry below sits under
-*Unreleased*. Two schemas carry their own versions, independent of the crate's: the evidence
-manifest schema and the report schema. Those are contracts with anyone holding a published
-artifact, and their history is recorded separately at the end of this file.
+Two schemas carry their own versions, independent of the crate's: the evidence manifest
+schema and the report schema. Those are contracts with anyone holding a published artifact,
+and their history is recorded separately at the end of this file.
 
 ---
 
-## [Unreleased]
+## [1.0.0] - 2026-08-07
 
 ### Added
 
@@ -56,9 +55,9 @@ artifact, and their history is recorded separately at the end of this file.
 
   | Bundle id | Interval | Report hash |
   | --- | --- | --- |
-  | `mainnet-3428141-3428146` | 3428142–3428146 | `0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db` |
-  | `mainnet-3428143-3428147` | 3428144–3428147 | `64d975d67b5c97251e13ee8e3c3dd9f21273d2d379157236094aac6a0dbdb157` |
-  | `mainnet-3439599-3439699` | 3439600–3439699 | `ea003acbe31b1ed33d73e46575234034fdf4496eef895d4829096d4f2fa17527` |
+  | `mainnet-3428141-3428146` | 3428142–3428146 | `e10929941f3cdf05217f939b0e2f8c93efccfc3bb6b81805c75f26f29eb0b66e` |
+  | `mainnet-3428143-3428147` | 3428144–3428147 | `67774f62162ee588282c1e99efc66653d0e50923b008b0d28514b1de2b43575e` |
+  | `mainnet-3439599-3439699` | 3439600–3439699 | `84c797f3cf03ffc039ae5c5751586a1d16d0048d679f9a9fdb99ac62c02a5d0a` |
 
   The first spans the NU6.3 activation height, 3,428,143, and is the only bundle on either
   network whose 23 checks all reach an affirmative verdict over pools that move. It is
@@ -178,6 +177,27 @@ artifact, and their history is recorded separately at the end of this file.
 
 ---
 
+### A note on the crate version and report hashes
+
+The crate version is part of the hashed report, recorded as `reconciled_by_version`. Raising
+the version from `0.1.0` to `1.0.0` therefore changed every published report hash, without any
+evidence changing and without anything being re-captured:
+
+| Bundle | 0.1.0 | 1.0.0 |
+| --- | --- | --- |
+| `testnet-ironwood` | `4a5d4d76…` | `9a103df1…` |
+| `mainnet-3428141-3428146` | `0a2ca229…` | `e1092994…` |
+| `mainnet-3428143-3428147` | `64d975d6…` | `67774f62…` |
+| `mainnet-3439599-3439699` | `ea003acb…` | `84c797f3…` |
+
+The three archive digests are unchanged, since an archive holds the evidence and its manifest
+rather than a report. The bundles' manifests still record `tool_version: 0.1.0`, which is the
+build that captured them; `reconciled_by_version` reports the build that produced the verdicts.
+Keeping the two separate is why that field exists.
+
+Reproductions performed against 0.1.0 observed the left-hand figures and are recorded that way
+rather than restated, since those machines never ran this release.
+
 ## Schema history
 
 These version independently of the crate. A reader must reject a major version it does not
@@ -205,8 +225,6 @@ implement rather than attempt a partial interpretation.
 Recorded here rather than omitted, so that a reader of this file is not left to infer status
 from what the entries above happen to mention.
 
-- No **release has been tagged**, so the three mainnet archives are not yet attached to
-  anything a third party can download.
 - No **independent party** has reproduced a result.
 - No **mainnet report hash** has been reproduced outside the two hosts the publisher operates,
   which differ in neither operating system nor architecture.

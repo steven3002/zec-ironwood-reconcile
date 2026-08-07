@@ -318,7 +318,7 @@ mod tests {
         }
     }
 
-    // The behaviour under test is platform independent — `symlink_metadata` reports links on
+    // The behaviour under test is platform independent, `symlink_metadata` reports links on
     // every target. Only the setup is not: creating a symbolic link on Windows requires
     // developer mode or elevation, so the test is restricted to targets where it can be
     // arranged without special privileges.

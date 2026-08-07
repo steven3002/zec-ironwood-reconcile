@@ -3,7 +3,7 @@
 //! # Why there is a trait here
 //!
 //! [`RpcTransport`] exists so that capture can be exercised without a node. That is not a
-//! generic abstraction over node implementations, the architecture deliberately has none —
+//! generic abstraction over node implementations, the architecture deliberately has none,
 //! but the seam that makes every guard, every failure path, and the credential-redaction
 //! guarantee testable while a synced node is unavailable. There is exactly one production
 //! implementation.

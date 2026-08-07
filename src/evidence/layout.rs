@@ -90,7 +90,7 @@ pub fn validate_relative_path(path: &str) -> Result<(), ReconcileError> {
 /// backslashes, so producing this string with `to_str` yields `blocks\1.hex` there against
 /// the `blocks/1.hex` a manifest stores. Nothing then matches: every file in the bundle is
 /// reported as unlisted, that becomes a warning, and the warning enters the hashed check
-/// array — so the same evidence yields a different report hash on Windows than on Linux,
+/// array, so the same evidence yields a different report hash on Windows than on Linux,
 /// which is precisely the property this project exists to guarantee.
 ///
 /// Built from [`Path::components`] rather than by replacing characters, so the result cannot
@@ -202,7 +202,7 @@ mod tests {
     fn a_bundle_path_always_uses_forward_slashes() {
         // Built from components, so the rendered form cannot inherit the platform
         // separator. On Windows `to_str` would yield `blocks\\1.hex`, which matches nothing
-        // in a manifest and made every file look unlisted — a warning that then entered the
+        // in a manifest and made every file look unlisted, a warning that then entered the
         // hashed check array and changed the report hash.
         let root = Path::new("/bundles/example");
         let nested = root.join("blocks").join("3428143.hex");

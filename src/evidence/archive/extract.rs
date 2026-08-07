@@ -5,7 +5,7 @@
 //!
 //! Extraction refuses, rather than accommodates:
 //!
-//! * paths that are absolute or contain `..`, which would write outside the destination —
+//! * paths that are absolute or contain `..`, which would write outside the destination,
 //!   the vulnerability class commonly called Zip Slip;
 //! * symbolic and hard links, which could redirect a later write outside the destination
 //!   even when every path looks benign;
