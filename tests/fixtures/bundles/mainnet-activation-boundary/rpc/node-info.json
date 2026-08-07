@@ -1,0 +1,14 @@
+{
+  "blocks": 3439807,
+  "build": "v6.2.3",
+  "connections": 47,
+  "difficulty": 188651744.6272895,
+  "errors": "chain tip metrics channel closed",
+  "errorstimestamp": 1786050604,
+  "paytxfee": 0.0,
+  "protocolversion": 170160,
+  "relayfee": 1e-6,
+  "subversion": "/Zebra:6.2.3/",
+  "testnet": false,
+  "version": 6020300
+}

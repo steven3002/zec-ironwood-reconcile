@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.1.0",
+  "bundle_id": "mainnet-3428141-3428146",
+  "created_at": "2026-08-07T18:20:12.488728519Z",
+  "tool": {
+    "name": "zec-ironwood-reconcile",
+    "version": "0.1.0",
+    "git_commit": null
+  },
+  "source": {
+    "implementation": "zebra",
+    "version": "6.2.3",
+    "rpc_url_redacted": true
+  },
+  "network": "mainnet",
+  "activation": {
+    "upgrade": "NU6.3",
+    "expected_height": 3428143
+  },
+  "interval": {
+    "anchor_height": 3428141,
+    "start_height": 3428142,
+    "end_height": 3428146,
+    "block_count": 5
+  },
+  "anchor": {
+    "block_hash": "0000000000acbb4e293519d3025062019b696f87e263347f2b04b4bc567bda6b",
+    "orchard_balance_zatoshis": "366083341444978",
+    "ironwood_balance_zatoshis": "0"
+  },
+  "end": {
+    "block_hash": "00000000003b1684e4f65ba8077d7ce7f4416049be72b94ec1716b105ed14252",
+    "reported_orchard_balance_zatoshis": "366123238056267",
+    "reported_ironwood_balance_zatoshis": "101962355",
+    "tracking": {
+      "orchard_tracked_by_node": true,
+      "ironwood_tracked_by_node": true
+    }
+  },
+  "files": [
+    {
+      "path": "anchor/block.hex",
+      "sha256": "9d1fe243d9b09b5d2e19a0ca5760bfa6a193bd46cb6b5f593d15741ca2b43d4d",
+      "size_bytes": 3258,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "anchor/value-pools.json",
+      "sha256": "c14d57f9c01bb1b32098cd688e05a853f3f054f251cef526d47af92d9aaa4bbd",
+      "size_bytes": 881,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/3428142.hex",
+      "sha256": "3f8ecbdad168bb38a6f3a3bfac90a832dd21ec30b9cf138baf0194b4d4edcf82",
+      "size_bytes": 151432,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/3428142.pools.json",
+      "sha256": "f877ccaf3b4fad4a8d1fc74dbe078f33181950b77815826ad0fc509151d59a7b",
+      "size_bytes": 894,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/3428143.hex",
+      "sha256": "ec4ad911a3c6ceb9de0e83aeee71b4a27863511739ee5ea569621dec06fb64f7",
+      "size_bytes": 3260,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/3428143.pools.json",
+      "sha256": "3157654ed4feb978ced807a6c71821234ef0d5222519510a4931778b03bb2ab1",
+      "size_bytes": 881,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/3428144.hex",
+      "sha256": "79072de29ffa5b61de6aef824fcc00043ce0cdc03210b1def80cabb38098909b",
+      "size_bytes": 41816,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/3428144.pools.json",
+      "sha256": "172ce5c4f24ced48d7070b2cbd632481cee461b04e7c04013ba3ccb6d3dd2513",
+      "size_bytes": 899,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/3428145.hex",
+      "sha256": "53d22d3ba337c2079ef5c6e39e66c4bc4db79752e45c97682eefdd0e4fde2902",
+      "size_bytes": 265496,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/3428145.pools.json",
+      "sha256": "72510b97bcff83e1abae1fd72e803d00bc41f1d592cc69aa522b8d1069746fc0",
+      "size_bytes": 905,
+      "encoding": "json"
+    },
+    {
+      "path": "blocks/3428146.hex",
+      "sha256": "5af544b39039356083adfa734f0a9f8767d5c0ea06a4b620269b926eddd50681",
+      "size_bytes": 91258,
+      "encoding": "raw-block-hex"
+    },
+    {
+      "path": "blocks/3428146.pools.json",
+      "sha256": "9d17e30c4349eb29cf7d53f3f401bfd00674a00ba5371a2be4074245c6f971b5",
+      "size_bytes": 899,
+      "encoding": "json"
+    },
+    {
+      "path": "metadata/capture-environment.json",
+      "sha256": "d39a1ddf73573a84b4be6fed2039ea518a4bfbc544e6e47f980bb99adb1da3c3",
+      "size_bytes": 472,
+      "encoding": "json"
+    },
+    {
+      "path": "metadata/command.txt",
+      "sha256": "494a92fe18fc1a862881fec2d2771e219cd9ba033d6aa0f38fc49433dcf0370b",
+      "size_bytes": 135,
+      "encoding": "text"
+    },
+    {
+      "path": "metadata/tool-version.txt",
+      "sha256": "2ef30c267dc0e7dd2ddb76388849101d5ddde728e2c713ce22f0315d163fc7a8",
+      "size_bytes": 29,
+      "encoding": "text"
+    },
+    {
+      "path": "rpc/blockchain-info-end.json",
+      "sha256": "3b2a2fce570a4d16c89137d885e03f4afc7a9f023e45e9ffba474b228120f18f",
+      "size_bytes": 2494,
+      "encoding": "json"
+    },
+    {
+      "path": "rpc/blockchain-info-start.json",
+      "sha256": "3b2a2fce570a4d16c89137d885e03f4afc7a9f023e45e9ffba474b228120f18f",
+      "size_bytes": 2494,
+      "encoding": "json"
+    },
+    {
+      "path": "rpc/node-info.json",
+      "sha256": "2c4b0053087757a0a405564333b4714046c641e9122ed8851e92727dc0466aa9",
+      "size_bytes": 324,
+      "encoding": "json"
+    }
+  ]
+}

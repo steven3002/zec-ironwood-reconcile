@@ -11,8 +11,12 @@ whether historical counterfeiting occurred, or replace full-node consensus valid
 
 ## Status
 
-**In development.** No release has been published and no evidence bundles exist yet. See
-[Project status](#project-status) below for what currently works.
+**In development.** No release has been tagged. Mainnet evidence now exists: the tool
+reconstructs Orchard and Ironwood pool changes across the NU6.3 activation boundary on
+mainnet from the blocks' own bytes, agreeing with Zebra at every height. One mainnet bundle
+is committed to this repository and re-checked on every build. See
+[Mainnet evidence](#mainnet-evidence) for the bundles and their hashes, and
+[Project status](#project-status) for what currently works.
 
 ## The claim
 
@@ -147,35 +151,113 @@ cargo test
 
 The pinned toolchain is declared in `rust-toolchain.toml`.
 
+## Mainnet evidence
+
+Three bundles were captured from a live Zebra 6.2.3 mainnet node on 2026-08-07. Each is a
+complete evidence bundle: the raw consensus bytes of every block in its interval, the node's
+own reported pool figures at each height, and a manifest hashing all of it.
+
+| Bundle id | Interval | Report hash | Archive SHA-256 |
+| --- | --- | --- | --- |
+| `mainnet-3428141-3428146` | 3428142–3428146 | `0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db` | `da2db22303bab2dd33ee0262524c46c7bb834a499ac0dc69c738d2073d1ef177` |
+| `mainnet-3428143-3428147` | 3428144–3428147 | `64d975d67b5c97251e13ee8e3c3dd9f21273d2d379157236094aac6a0dbdb157` | `fa94524b64a36891dd6eb9aabfcd3379e87ae17d16faa0a9227a2516a9f91dcc` |
+| `mainnet-3439599-3439699` | 3439600–3439699 | `ea003acbe31b1ed33d73e46575234034fdf4496eef895d4829096d4f2fa17527` | `f63bcdbdfaf34eeca6e2a3382fd25c8e8ab9e817af761278b2dbbe92291ee886` |
+
+All three reconcile with every accounting check passing and no diverging height. The archives
+are release artifacts and attach to the tag when it is cut;
+`mainnet-3428141-3428146` is also committed under
+[`tests/fixtures/bundles/`](tests/fixtures/bundles/), so its result can be reproduced from a
+clone alone:
+
+```sh
+cargo build --release
+./target/release/zec-ironwood-reconcile \
+  reconcile tests/fixtures/bundles/mainnet-activation-boundary --output ./out
+cat ./out/report.sha256
+```
+
+Given an archive, the same figure is reached offline without a node:
+
+```sh
+./target/release/zec-ironwood-reconcile verify mainnet-3428141-3428146.tar.zst \
+  --expected-report-hash 0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db
+```
+
+[`REPRODUCING.md`](REPRODUCING.md) is the full procedure and states what a reproduction must
+report for it to count.
+
+### What the mainnet data shows that testnet could not
+
+`mainnet-3428141-3428146` spans the NU6.3 activation height, 3,428,143, and reaches an
+affirmative verdict on **all 23 checks**: none reports `NotApplicable`, none reports a
+warning. The testnet boundary bundle does too, but with both pools motionless at every
+height — it affirms the boundary rules and demonstrates no value movement. This is the only
+bundle that does both, with real value moving in Orchard or Ironwood at four of its five
+heights.
+
+Value first entered the Ironwood pool at 3,428,144, the first block after activation, and it
+arrived by a different route than on testnet:
+
+| | testnet 4,134,683 | mainnet 3,428,144 |
+| --- | --- | --- |
+| Blocks after activation | 683 | 1 |
+| Transactions in the block | 1, a coinbase | 3 |
+| Ironwood delta | +125,000,000 | +1,000,000 |
+| Orchard delta | 0 | −1,020,000 |
+| Where the value came from | issuance | the Orchard pool |
+
+On mainnet the Orchard outflow exceeds the Ironwood inflow by 20,000 zatoshi, and the
+transparent pool's delta rises by exactly that amount: +137,520,000 at 3,428,144 against
++137,500,000 the block before. That is what a transaction fee looks like in a pool view; the
+measurement is the matching figure, and reading a fee into it is an interpretation of the
+measurement rather than something the node states. Testnet had only ever shown Ironwood
+funded by issuance. Both
+mechanisms now have captured evidence behind them, and neither is treated as a rule: the
+report states the Orchard outflow and the Ironwood inflow as two separate observations
+rather than a balance, for the reasons in
+[`ACCOUNTING_MODEL.md`](ACCOUNTING_MODEL.md).
+
+`mainnet-3439599-3439699` covers 100 blocks roughly 11,500 past activation. It is the only
+evidence covering Ironwood *outflows*: 25 of its heights carry a negative Ironwood delta, and
+its anchor holds a non-zero Ironwood balance, neither of which any boundary interval
+contains.
+
 ## Project status
 
 | Component | State |
 | --- | --- |
 | Domain types, error model, exit codes, CLI surface | Implemented and tested |
 | Evidence format, manifest, hashing, validation | Implemented and tested |
-| Transaction parsing | Implemented; **verified against a real Ironwood bundle on testnet** |
+| Transaction parsing | Implemented; **verified against real Ironwood bundles on testnet and mainnet** |
 | Reconciliation and checks | Implemented and tested |
 | Reports and determinism | Implemented and tested |
 | Archive packaging and hardened extraction | Implemented and tested |
 | `inspect` | Implemented and tested |
 | `verify` | Implemented; reproduces a report hash offline |
-| RPC client and `capture` | Implemented; exercised against a live Zebra 6.2.3 node |
-| `reconcile` | Implemented; exercised against real Ironwood-era testnet blocks |
-| Published mainnet evidence | Not started |
+| RPC client and `capture` | Implemented; exercised against live Zebra 6.2.3 testnet and mainnet nodes |
+| `reconcile` | Implemented; exercised against real Ironwood-era testnet and mainnet blocks |
+| Mainnet evidence | Three bundles captured and reconciled; one committed as a fixture |
+| Tagged release with attached artifacts | Not started |
 
 No component is described as delivered until its tests pass against real chain data.
 
-The end-to-end path is demonstrated on testnet. At height 4,134,683, where value first
-entered the Ironwood pool, 683 blocks after NU6.3 activated, the tool reconstructs an
-inflow of **125,000,000 zatoshi** from the block's own version 6 transaction bytes, which is
-the figure Zebra independently reports for that height. Every height in the interval agrees
-on both comparison axes, and the archive verifies offline to the same report hash. The
-bundle is committed as a fixture with its provenance in
-[`tests/fixtures/PROVENANCE.md`](tests/fixtures/PROVENANCE.md), so that result is re-checked
-on every build.
+The end-to-end path is demonstrated on both networks. On testnet, at height 4,134,683 where
+value first entered the Ironwood pool, the tool reconstructs an inflow of **125,000,000
+zatoshi** from the block's own version 6 transaction bytes. On mainnet, at height 3,428,144,
+it reconstructs an Ironwood inflow of **1,000,000 zatoshi** against an Orchard outflow of
+**1,020,000**. Each figure is the one Zebra independently reports for that height. Every
+height in every interval agrees on both comparison axes, and each archive verifies offline to
+the same report hash. One bundle per network is committed as a fixture with its provenance in
+[`tests/fixtures/PROVENANCE.md`](tests/fixtures/PROVENANCE.md), so both results are
+re-checked on every build.
 
-**Still open.** Nothing has been demonstrated on mainnet, no evidence bundle has been
-published, and no independent party has reproduced a result.
+**Still open.** No release has been tagged and no independent party has reproduced a result.
+Cross-platform determinism is demonstrated for the **testnet** report hash only, on Ubuntu,
+WSL2 and native Windows, all `x86_64`. The mainnet hashes have so far been reproduced only on
+the two Ubuntu `x86_64` hosts the publisher operates, which differ in neither operating system
+nor architecture. macOS and `aarch64` remain untested in fact: the CI job that would cover
+them exists but has never run. [`REPRODUCING.md`](REPRODUCING.md) records exactly what has
+been run where.
 
 ## License
 

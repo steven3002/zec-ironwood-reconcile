@@ -66,6 +66,12 @@ subsidy of 156,250,000 zatoshi as transparent +12,500,000, lockbox +18,750,000 a
 Orchard outflow, and the two figures are reported side by side without any asserted
 relationship between them.
 
+Mainnet funded Ironwood the other way and confirms the same conclusion from the opposite
+side. At mainnet height 3,428,144 Ironwood gained 1,000,000 zatoshi while Orchard released
+1,020,000, so here the outflow *exceeded* the inflow. Neither ordering is a rule. Both
+networks are now represented in the captured evidence precisely so that neither observation
+can be mistaken for one.
+
 ---
 
 ## 2. Limitations of the method
@@ -129,15 +135,25 @@ than its configured maximum. Results describe the captured interval and nothing 
 Stated because a limitations document that omits the status of its own evidence is
 incomplete.
 
-- **Nothing has been demonstrated on mainnet.** Every result to date is from testnet.
-- **No evidence bundle has been published.**
 - **No release has been tagged.** The crate version is `0.1.0` and unreleased.
-- **No independent party has reproduced a result.**
-- **No second machine has reproduced a report hash.** Determinism is demonstrated across
-  repeated runs and a change of working directory on one machine only.
+- **No independent party has reproduced a result.** This is the largest open gap and no
+  amount of further work by the publisher closes it.
+- **No mainnet report hash has been reproduced outside the publisher's own machines.** Three
+  mainnet bundles reconcile identically on two hosts, but those hosts run the same Ubuntu
+  release on the same architecture from the same pinned toolchain and produce byte-identical
+  binaries. That demonstrates the evidence survives a change of host, and nothing about a
+  change of platform.
+- **macOS and `aarch64` have never run this suite.** A CI job covering `windows-latest` and
+  `macos-latest` is configured and has never executed. Cross-platform determinism is
+  demonstrated for the testnet report hash only, on Ubuntu, WSL2 and native Windows, all
+  `x86_64`.
+- **The mainnet evidence covers 106 distinct blocks.** Six across the activation boundary and
+  100 in steady state, out of a chain more than 3.4 million blocks long. Results describe the
+  captured intervals and nothing outside them.
 
-What *is* demonstrated is the complete loop on real testnet chain data, capture,
-reconcile, archive, publish a hash, verify offline, over an interval spanning the NU6.3
-activation boundary and over one containing the first real Ironwood inflow, with the
-reconstruction matching the figure the network reports. See
-[`REPRODUCING.md`](REPRODUCING.md) for what a reproduction must report for it to count.
+What *is* demonstrated is the complete loop on real chain data from **both networks**:
+capture, reconcile, archive, publish a hash, verify offline, over intervals spanning the NU6.3
+activation boundary on each, over the first real Ironwood inflow on each, and over 100
+steady-state mainnet blocks, with the reconstruction matching the figures the network reports
+at every height. See [`REPRODUCING.md`](REPRODUCING.md) for what a reproduction must report
+for it to count.

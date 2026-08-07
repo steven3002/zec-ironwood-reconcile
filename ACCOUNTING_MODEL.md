@@ -274,8 +274,8 @@ contains a single transaction, the coinbase, distributing that height's block su
 | lockbox | +18,750,000 |
 | ironwood | +125,000,000 |
 
-**Ironwood receives newly issued value directly from coinbase transactions.** Its inflow
-routinely exceeds Orchard's outflow, and the difference is ordinary issuance rather than
+**Ironwood receives newly issued value directly from coinbase transactions.** Its inflow can
+therefore exceed Orchard's outflow, and that difference is ordinary issuance rather than
 unexplained supply. This is consistent with ZIP 258, which forbids Orchard actions in
 coinbase transactions while permitting Ironwood ones.
 
@@ -284,6 +284,31 @@ against the first real Ironwood block on testnet. The report field is named
 `pool_flows_observed` rather than anything suggesting a turnstile, and one of the nine
 limitations every report carries states in plain terms that the two figures are not a
 balance.
+
+#### Mainnet shows the opposite ordering, and a third source
+
+Mainnet funded Ironwood by moving value out of Orchard rather than by issuing it. At height
+3,428,144, the first block after NU6.3 activated, Ironwood gained 1,000,000 zatoshi while
+Orchard released 1,020,000 — the outflow **exceeded** the inflow, the reverse of the testnet
+case, with the 20,000 difference appearing in the transparent pool.
+
+The excess is not always issuance either. Across the captured mainnet heights the six pool
+deltas sum to exactly 156,250,000 zatoshi, that era's block subsidy, at every height without
+exception. At 3,428,146 Ironwood gained 962,355 while Orchard released 538,490, and the
+transparent pool's delta fell short of its coinbase-only figure by exactly the 423,865
+difference:
+
+| Height | transparent | lockbox | orchard | ironwood | sum |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 3,428,143 | +137,500,000 | +18,750,000 | 0 | 0 | 156,250,000 |
+| 3,428,144 | +137,520,000 | +18,750,000 | −1,020,000 | +1,000,000 | 156,250,000 |
+| 3,428,145 | +139,225,221 | +18,750,000 | −101,725,221 | +100,000,000 | 156,250,000 |
+| 3,428,146 | +137,076,135 | +18,750,000 | −538,490 | +962,355 | 156,250,000 |
+
+So an Ironwood inflow larger than the Orchard outflow does not identify issuance as the
+source; value reaching Ironwood from the transparent pool produces the same signature in a
+two-pool view. Reading either ordering as evidence of anything would repeat the error §6.1
+exists to record. The two figures are reported. Nothing is inferred from their relationship.
 
 ---
 

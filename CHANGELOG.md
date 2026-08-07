@@ -51,6 +51,25 @@ artifact, and their history is recorded separately at the end of this file.
   definition and once as an enumeration.
 - Committed evidence bundles from testnet as fixtures: one spanning the NU6.3 activation
   boundary, one covering the first real Ironwood inflow. Both are re-checked on every build.
+- **Mainnet evidence.** Three bundles captured from a live Zebra 6.2.3 mainnet node on
+  2026-08-07, each reconciling with every accounting check passing and no diverging height:
+
+  | Bundle id | Interval | Report hash |
+  | --- | --- | --- |
+  | `mainnet-3428141-3428146` | 3428142–3428146 | `0a2ca229afb716ca77e3857c5f0a0700a8d36ee2a99b9235fec58cdb1fdc78db` |
+  | `mainnet-3428143-3428147` | 3428144–3428147 | `64d975d67b5c97251e13ee8e3c3dd9f21273d2d379157236094aac6a0dbdb157` |
+  | `mainnet-3439599-3439699` | 3439600–3439699 | `ea003acbe31b1ed33d73e46575234034fdf4496eef895d4829096d4f2fa17527` |
+
+  The first spans the NU6.3 activation height, 3,428,143, and is the only bundle on either
+  network whose 23 checks all reach an affirmative verdict over pools that move. It is
+  committed under `tests/fixtures/bundles/mainnet-activation-boundary/`; the other two are
+  release artifacts, with the reasoning in `tests/fixtures/PROVENANCE.md`.
+- **`tests/mainnet_evidence.rs`**, pinning the committed mainnet bundle's published report
+  hash as a test literal alongside the testnet one. Every other determinism assertion compares
+  the tool against itself on one machine, which cannot distinguish reproducible from
+  consistently wrong. The testnet literal does not cover mainnet evidence: the report carries
+  the network, the interval and every verdict, so a defect reachable only from mainnet data
+  would leave it intact.
 
 ### Changed
 
@@ -142,6 +161,20 @@ artifact, and their history is recorded separately at the end of this file.
   for one was found.
 - Added `ACCOUNTING_MODEL.md`, `ARCHITECTURE.md`, `LIMITATIONS.md`, `SECURITY.md`,
   `CONTRIBUTING.md`, `REPRODUCING.md` and this file.
+- Recorded that Ironwood is funded by **two different mechanisms**, one observed on each
+  network. Testnet 4,134,683 funded it by issuance in a lone coinbase transaction with Orchard
+  unmoved; mainnet 3,428,144 funded it by a movement out of Orchard, with the 20,000 zatoshi
+  difference appearing in the transparent pool. §6.1 of `ACCOUNTING_MODEL.md` previously
+  generalised from the testnet case that Ironwood inflow "routinely exceeds" Orchard outflow;
+  mainnet shows the opposite ordering, and at 3,428,146 shows an excess inflow sourced from
+  the transparent pool rather than from issuance. Neither ordering identifies a source, and
+  nothing is inferred from the relationship between the two figures. No check changed: the
+  inequality was never asserted, which is why the mainnet data contradicted no verdict.
+- `REPRODUCING.md` now walks through the mainnet boundary bundle, and states in a table what
+  has been run on which platform. The mainnet hashes have been reproduced only on two hosts
+  the publisher operates, running the same OS and architecture with the same toolchain and
+  producing byte-identical binaries; that is recorded as a change of host and not as a
+  cross-platform result. The cross-platform CI job is marked as configured but never executed.
 
 ---
 
@@ -172,8 +205,10 @@ implement rather than attempt a partial interpretation.
 Recorded here rather than omitted, so that a reader of this file is not left to infer status
 from what the entries above happen to mention.
 
-- Nothing has been demonstrated on **mainnet**. Every result to date is from testnet.
-- No **evidence bundle has been published**.
-- No **release has been tagged**.
-- No **second machine** has reproduced a report hash.
+- No **release has been tagged**, so the three mainnet archives are not yet attached to
+  anything a third party can download.
 - No **independent party** has reproduced a result.
+- No **mainnet report hash** has been reproduced outside the two hosts the publisher operates,
+  which differ in neither operating system nor architecture.
+- **macOS and `aarch64`** have never run this suite. The CI job covering `windows-latest` and
+  `macos-latest` is configured and has never executed.

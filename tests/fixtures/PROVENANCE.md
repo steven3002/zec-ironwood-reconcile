@@ -111,6 +111,89 @@ the end-balance agreement is a measurement rather than a placeholder.
 a reorganisation, at scale, or on mainnet, and it is not a substitute for the independent
 external reproduction that release requires.
 
+### Block bytes, the mainnet activation boundary
+
+`bundles/mainnet-activation-boundary/` is a complete evidence bundle captured from a live
+**Zebra 6.2.3** node on **mainnet**, on **2026-08-07**.
+
+```
+Bundle id:     mainnet-3428141-3428146
+Interval:      3428142..=3428146, anchored at 3428141
+Anchor hash:   0000000000acbb4e293519d3025062019b696f87e263347f2b04b4bc567bda6b
+End hash:      00000000003b1684e4f65ba8077d7ce7f4416049be72b94ec1716b105ed14252
+Node:          zebra 6.2.3
+Tip at capture: 3439807
+```
+
+**Why this interval.** NU6.3 activated on mainnet at 3,428,143, and value first entered the
+Ironwood pool at 3,428,144, the very next block. An interval anchored one block below
+activation and running three blocks past the first inflow is therefore the only shape in
+which every check reaches an affirmative verdict *over moving pools*: the three activation
+checks each have the heights they range over, and the accounting checks have real value
+movement in both pools to compare.
+
+`bundles/testnet-activation-boundary/` also records no `NotApplicable` and no `Warn`, but
+its Orchard and Ironwood deltas are zero at every height, so it affirms the boundary rules
+against a motionless ledger. This bundle affirms the same rules with value moving at four of
+its five heights, which is the combination neither fixture had before.
+
+**The finding.** Mainnet and testnet funded Ironwood by different mechanisms, and the
+contrast is the reason this fixture is worth its bytes:
+
+| | testnet 4,134,683 | mainnet 3,428,144 |
+| --- | --- | --- |
+| Blocks after activation | 683 | 1 |
+| Transactions in the block | 1, a coinbase | 3 |
+| Ironwood delta | +125,000,000 | +1,000,000 |
+| Orchard delta | 0 | −1,020,000 |
+| Where the value came from | issuance | the Orchard pool |
+
+On mainnet the Orchard outflow exceeds the Ironwood inflow by 20,000 zatoshi, and the
+transparent pool's delta rises by exactly that amount: +137,520,000 at 3,428,144 against
++137,500,000 at 3,428,143. The matching figure is the measurement; reading a transaction fee
+into it is an interpretation of the measurement and not something the node states. Testnet
+had only ever shown the issuance mechanism, which is why an earlier turnstile invariant had
+to be disproved rather than asserted. Both mechanisms now have captured evidence behind them;
+neither is a rule.
+
+**The cross-check.** Zebra independently reports, for height 3,428,144:
+
+```json
+{"id": "ironwood", "chainValueZat": 1000000, "valueDeltaZat": 1000000, "monitored": true}
+{"id": "orchard",  "chainValueZat": 366123340319978, "valueDeltaZat": -1020000, "monitored": true}
+```
+
+The reconstruction from the blocks' own version 6 transaction bytes agrees at every height
+in the interval, on both the running balance and the per-block delta.
+`tests/mainnet_evidence.rs` pins that agreement and the bundle's published report hash,
+`0a2ca229…`.
+
+The `monitored` flag also flips `false` → `true` at exactly 3,428,144, the height Ironwood
+first held value. That is the same behaviour the testnet sapling pair at 280,768/280,769
+records, now observed on a second pool and a second network.
+
+**What it does not cover.** Five blocks. It does not establish behaviour across a
+reorganisation or at scale, and it is not a substitute for the independent external
+reproduction that release requires. No machine other than the two the publisher operates has
+reproduced its hash.
+
+### Mainnet bundles that are published but not committed
+
+Two further mainnet bundles were captured on 2026-08-07 and are published as release
+artifacts only:
+
+| Bundle id | Interval | Archive | Why it is not committed |
+| --- | --- | --- | --- |
+| `mainnet-3428143-3428147` | 3428144–3428147 | 283 KiB | Its heights are almost entirely those of the committed bundle, and starting *at* activation leaves two activation checks `NotApplicable`. It adds one height and no assertion the committed bundle cannot make |
+| `mainnet-3439599-3439699` | 3439600–3439699 | 3.6 MiB | Six times the size of every other fixture in this repository combined, for a claim about scale that a release artifact carries just as well |
+
+The second is nonetheless the only evidence covering **Ironwood outflows**: 25 of its 100
+heights have a negative Ironwood delta, a direction no committed fixture exercises, and its
+anchor holds a non-zero Ironwood balance. If a defect were ever suspected in the outflow
+direction, that bundle is where to look, and a committed fixture covering it would be
+justified then. Committing it now would multiply the repository's fixture weight to guard a
+path no reported defect has touched.
+
 ### Further block fixtures
 
 When adding one, record:
