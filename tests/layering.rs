@@ -52,12 +52,23 @@ const FORBIDDEN: &[(&str, &[&str])] = &[
     ("capture", &["reconcile", "checks", "report"]),
 ];
 
+/// Reads a source file with line endings normalised to `\n`.
+///
+/// The scans in this file are anchored at the start of each line, so a trailing carriage
+/// return does not currently change a verdict. Normalising anyway keeps that from being a
+/// property anyone has to re-establish: a CRLF checkout is the default on Windows, and a
+/// scan added later that searches for a literal containing `\n` would fail there while
+/// passing everywhere else.
+fn read_source(path: &Path) -> String {
+    std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+}
+
 /// Source of a file, with test modules and comments removed.
 ///
 /// Everything from the first `#[cfg(test)]` onward is dropped. Every file in this crate
 /// places its test module last, and the test below fails loudly if one does not.
 fn shipped_source(path: &Path) -> String {
-    let text = std::fs::read_to_string(path).unwrap();
+    let text = read_source(path);
     let body = match text.find("#[cfg(test)]") {
         Some(index) => &text[..index],
         None => &text[..],
@@ -220,7 +231,7 @@ fn test_modules_are_last_in_every_file() {
     let mut offenders = Vec::new();
 
     for file in rust_files_under(&source_root()) {
-        let text = std::fs::read_to_string(&file).unwrap();
+        let text = read_source(&file);
         let Some(index) = text.find("#[cfg(test)]") else {
             continue;
         };

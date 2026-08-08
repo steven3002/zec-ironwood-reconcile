@@ -23,10 +23,18 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+/// Reads a repository file with line endings normalised to `\n`.
+///
+/// Normalisation is not cosmetic. The scanners below locate the end of a block by searching
+/// for a literal `"\n}\n"`, which does not occur in a file checked out with CRLF endings: the
+/// bytes there are `"\n}\r\n"`. Git for Windows enables `core.autocrlf` by default and this
+/// repository marks only `tests/fixtures/**` and `*.sh` as exempt, so every source file this
+/// function reads arrives with CRLF on a Windows clone and every scan panics.
 fn source(relative: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative);
-    std::fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("could not read {}: {error}", path.display()))
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("could not read {}: {error}", path.display()));
+    text.replace("\r\n", "\n")
 }
 
 /// Body between `opening` and `closing`, excluding both.
