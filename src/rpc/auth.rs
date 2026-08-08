@@ -190,18 +190,49 @@ impl Authentication {
     }
 }
 
-/// Default path of a Zebra cookie file, following the XDG cache convention.
+/// Default path of a Zebra cookie file within a given cache directory.
+///
+/// Separated from the lookup so the layout can be asserted without depending on the
+/// environment the test happens to run in. Rust 2024 makes `set_var` unsafe, and this crate
+/// forbids unsafe code, so a test cannot arrange those variables for itself.
+fn cookie_path_in(cache: PathBuf) -> PathBuf {
+    cache.join("zebra").join(COOKIE_FILE_NAME)
+}
+
+/// The user's cache directory, by the convention of the platform.
+///
+/// Zebra derives its own cache directory the same way, so the two agree without this crate
+/// taking a dependency to compute one path.
+#[cfg(not(windows))]
+fn cache_directory() -> Option<PathBuf> {
+    match std::env::var_os("XDG_CACHE_HOME") {
+        Some(value) if !value.is_empty() => Some(PathBuf::from(value)),
+        _ => Some(PathBuf::from(std::env::var_os("HOME")?).join(".cache")),
+    }
+}
+
+/// Windows has no `HOME` and no XDG variables; the cache convention is `LOCALAPPDATA`.
+///
+/// Zebra lists Windows as a tier 3 target, built from source rather than published, so a
+/// node can exist here even though no official binary does. Reading only the Unix variables
+/// made discovery return `None` on Windows and silently fall back to an unauthenticated
+/// attempt, which contradicts the documented default of cookie authentication.
+#[cfg(windows)]
+fn cache_directory() -> Option<PathBuf> {
+    match std::env::var_os("LOCALAPPDATA") {
+        Some(value) if !value.is_empty() => Some(PathBuf::from(value)),
+        _ => None,
+    }
+}
+
+/// Default path of a Zebra cookie file.
 ///
 /// Zebra writes the cookie into its cache directory unless configured otherwise. A node
 /// with a custom `cookie_dir` requires `--rpc-cookie-file`, which is why discovery failing
 /// is not an error: it falls back to an unauthenticated attempt whose failure names the
 /// cause.
 pub fn default_cookie_path() -> Option<PathBuf> {
-    let cache = match std::env::var_os("XDG_CACHE_HOME") {
-        Some(value) if !value.is_empty() => PathBuf::from(value),
-        _ => PathBuf::from(std::env::var_os("HOME")?).join(".cache"),
-    };
-    Some(cache.join("zebra").join(COOKIE_FILE_NAME))
+    cache_directory().map(cookie_path_in)
 }
 
 /// Replaces the userinfo component of any URL appearing in text.
@@ -420,9 +451,41 @@ mod tests {
         assert!(authentication.is_authenticated());
     }
 
+    /// Asserts the final two components without spelling a separator.
+    ///
+    /// A literal such as `"zebra/.cookie"` embeds an assumption about the separator in the
+    /// very test that exists because separators differ between platforms.
+    fn assert_cookie_layout(path: &Path) {
+        assert_eq!(
+            path.file_name(),
+            Some(std::ffi::OsStr::new(COOKIE_FILE_NAME)),
+            "{}",
+            path.display()
+        );
+        assert_eq!(
+            path.parent().and_then(Path::file_name),
+            Some(std::ffi::OsStr::new("zebra")),
+            "{}",
+            path.display()
+        );
+    }
+
     #[test]
-    fn the_default_cookie_path_follows_the_cache_convention() {
-        let path = default_cookie_path().expect("HOME or XDG_CACHE_HOME should be set in tests");
-        assert!(path.ends_with("zebra/.cookie"), "{}", path.display());
+    fn the_cookie_lies_under_zebras_directory_in_the_cache() {
+        // Asserted against a supplied cache directory rather than the process environment.
+        // The previous form read the environment and panicked when neither `HOME` nor
+        // `XDG_CACHE_HOME` was set, which is every Windows machine.
+        let path = cookie_path_in(PathBuf::from("/somewhere/cache"));
+        assert_cookie_layout(&path);
+    }
+
+    #[test]
+    fn discovery_yields_a_cookie_path_or_nothing_but_never_panics() {
+        // Discovery failing is a supported outcome: a node with a custom `cookie_dir`
+        // requires `--rpc-cookie-file`. What must not happen is a panic, or a path that
+        // does not name Zebra's cookie.
+        if let Some(path) = default_cookie_path() {
+            assert_cookie_layout(&path);
+        }
     }
 }
